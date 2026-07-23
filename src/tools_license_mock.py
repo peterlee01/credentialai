@@ -18,17 +18,17 @@ _MOCK_LICENSE_DB = {
     "psychologist": {
         "Arizona": "active", "California": "not_found", "Colorado": "active",
         "Florida": "not_found", "Georgia": "active", "Illinois": "pending",
-        "New York": "not_found", "Ohio": "active", "Texas": "active", "Virginia": "pending",
+        "New York": "expired", "Ohio": "active", "Texas": "active", "Virginia": "pending",
     },
     "counselor": {
         "Arizona": "pending", "California": "not_found", "Colorado": "active",
-        "Florida": "active", "Georgia": "not_found", "Illinois": "not_found",
+        "Florida": "active", "Georgia": "expired", "Illinois": "not_found",
         "New York": "not_found", "Ohio": "active", "Texas": "pending", "Virginia": "active",
     },
     "social worker": {
         "Arizona": "active", "California": "active", "Colorado": "not_found",
         "Florida": "pending", "Georgia": "active", "Illinois": "active",
-        "New York": "active", "Ohio": "not_found", "Texas": "not_found", "Virginia": "active",
+        "New York": "active", "Ohio": "not_found", "Texas": "not_found", "Virginia": "expired",
     },
 }
 

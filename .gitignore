@@ -5,3 +5,4 @@ __pycache__/
 venv/
 data/UPDATED.csv
 audit_log.jsonl
+resolutions.jsonl
