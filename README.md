@@ -5,9 +5,9 @@ clinician's identity (real NPPES NPI Registry), sanctions/exclusion status (real
 and license status (mocked — see caveat below), then synthesizes a cited GO / NEEDS REVIEW /
 NO-GO verdict.
 
-Built as a portfolio companion piece to Clearway, applying the same trust pattern (cited,
-confidence-tiered, human-escalatable) to a real multi-agent orchestration problem instead of a
-simulated one.
+A portfolio project demonstrating real multi-agent orchestration — a coordinator directing
+identity, sanctions, and license sub-checks against real government data sources, with a cited,
+confidence-tiered, human-escalatable trust pattern driving every verdict.
 
 ## Real vs. mocked data sources
 
@@ -54,9 +54,10 @@ Coordinator (Claude, via Tool Runner)
 Every verification is appended to `audit_log.jsonl` (gitignored) with the request, and the full
 verdict text.
 
-**All three verdict paths verified end-to-end against real NPPES/LEIE data** (not just designed —
+**All four verdict paths verified end-to-end against real NPPES/LEIE data** (not just designed —
 actually run and observed):
-- `GO` — not yet exercised against a real clean unambiguous match (still open)
+- `GO` — "Shoshana Aal, counselor, Colorado": a real, unambiguous single NPPES match (NPI
+  1093982704), 0 sanctions hits, active mocked license
 - `NEEDS REVIEW` — "Jack Smith, social worker, California": real ambiguous NPPES match (5
   candidates, no clean profession match)
 - `NO-GO` via sanctions — "John Smith, social worker, California": 2 real HHS-OIG LEIE hits
@@ -82,4 +83,3 @@ actual functioning code, not a UI mockup.
 - No real backend/API service, and no web UI for the review queue — both are CLI tools.
 - No payer enrollment, PSV document handling, or credentialing-file generation — this checks
   identity/sanctions/license status only.
-- The `GO` verdict path hasn't been exercised against a real unambiguous clean match yet.
