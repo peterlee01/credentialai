@@ -6,3 +6,5 @@ venv/
 data/UPDATED.csv
 audit_log.jsonl
 resolutions.jsonl
+.vercel
+.env*

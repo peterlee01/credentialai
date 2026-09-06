@@ -7,13 +7,14 @@ https://oig.hhs.gov/exclusions/exclusions_list.asp — no API key required.
 import csv
 import json
 import os
+import tempfile
 import time
 
 import requests
 from anthropic import beta_tool
 
 LEIE_URL = "https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv"
-CACHE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "UPDATED.csv")
+CACHE_PATH = os.path.join(tempfile.gettempdir(), "UPDATED.csv")
 CACHE_MAX_AGE_SECONDS = 24 * 60 * 60  # re-download at most once a day
 
 _leie_rows_cache = None

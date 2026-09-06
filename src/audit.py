@@ -4,7 +4,9 @@ import json
 import os
 import time
 
-LOG_PATH = os.path.join(os.path.dirname(__file__), "..", "audit_log.jsonl")
+LOG_PATH = os.environ.get("AUDIT_LOG_PATH") or os.path.join(
+    os.path.dirname(__file__), "..", "audit_log.jsonl"
+)
 
 
 def log_verification(request: dict, verdict_text: str) -> None:

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Terms of Service — Credentialai</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d; --panel: #12131a; --border: #1b1d23; --border-strong: #ffffff1a;
+    --text: #c2cad6; --heading: #f2f4f7; --muted: #94a3b8; --muted-2: #64748b;
+    --accent: #00d4aa; --accent-2: #4a9eff;
+    --display: "Space Grotesk", ui-sans-serif, sans-serif;
+    --sans: "Inter", -apple-system, "Segoe UI", ui-sans-serif, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 16px; line-height: 1.7; }
+  a { color: var(--accent); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 1.5rem; }
+  nav.top { max-width: 1160px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 1.35rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .word { font-family: var(--display); font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: var(--heading); }
+  .logo-mark { position: relative; width: 1.6rem; height: 1.6rem; flex: none; }
+  .logo-mark span { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; }
+  .logo-mark .r1 { border-top-color: var(--accent); border-right-color: var(--accent); opacity: .8; animation: spin 4s linear infinite; }
+  .logo-mark .r2 { inset: 3px; border-bottom-color: var(--accent-2); border-left-color: var(--accent-2); opacity: .7; animation: spin 3s linear infinite reverse; }
+  .logo-mark .dot { position: absolute; inset: 0; margin: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .word .ai { color: var(--accent); }
+  .back { font-size: 0.85rem; color: var(--muted); text-decoration: none; }
+  .back:hover { color: var(--accent); }
+  main { padding: 4rem 0 5rem; }
+  .updated { font-size: 0.82rem; color: var(--muted-2); margin: 0 0 2.5rem; }
+  h1 { font-family: var(--display); font-size: 2.1rem; font-weight: 700; color: var(--heading); margin: 0 0 0.5rem; }
+  h2 { font-family: var(--display); font-size: 1.15rem; font-weight: 700; color: var(--heading); margin: 2.2rem 0 0.8rem; }
+  p, li { color: var(--text); font-size: 0.95rem; }
+  ul { padding-left: 1.2rem; margin: 0 0 1rem; }
+  li { margin-bottom: 0.5rem; }
+  .callout { background: var(--panel); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem 1.4rem; margin: 1.5rem 0; font-size: 0.9rem; color: var(--muted); }
+  footer.site-footer { border-top: 1px solid var(--border); padding: 2.5rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--muted-2); }
+</style>
+</head>
+<body>
+<nav class="top">
+  <a class="word" href="index.html">
+    <span class="logo-mark"><span class="r1"></span><span class="r2"></span><span class="dot"></span></span>
+    Credential<span class="ai">ai</span>
+  </a>
+  <a class="back" href="index.html">← Back to home</a>
+</nav>
+
+<main class="wrap">
+  <h1>Terms of Service</h1>
+  <p class="updated">Last updated: January 2026</p>
+
+  <p>These terms govern your use of the Credentialai website, including the live verification demo. By using this site, you agree to the terms below.</p>
+
+  <h2>Description of service</h2>
+  <p>This site provides a live demonstration of a multi-agent credential verification workflow. Identity checks run against the NPPES NPI Registry and sanctions checks run against the HHS-OIG List of Excluded Individuals/Entities — both real, public, live U.S. government data sources.</p>
+
+  <div class="callout">
+    License status shown by this demo comes from an illustrative demo dataset, not a live connection to any state licensing board. It is clearly labeled as such wherever it appears and should not be treated as a verified license record.
+  </div>
+
+  <h2>Not a substitute for credentialing decisions</h2>
+  <p>Output from this demo is provided for illustrative and evaluation purposes only. It must not be used as the sole basis for actual hiring, credentialing, privileging, or compliance decisions. Organizations making real credentialing decisions should rely on verified primary-source data and their own compliance processes.</p>
+
+  <h2>Usage limits</h2>
+  <p>To manage service capacity, the live demo is limited to one real verification per visitor session. Requests beyond that limit will be declined.</p>
+
+  <h2>No warranty</h2>
+  <p>This service is provided "as is" and "as available," without warranties of any kind, express or implied, including accuracy, completeness, or fitness for a particular purpose.</p>
+
+  <h2>Limitation of liability</h2>
+  <p>To the fullest extent permitted by law, Credentialai is not liable for any damages arising from use of, or inability to use, this site or its output.</p>
+
+  <h2>Changes to these terms</h2>
+  <p>We may update these terms from time to time. Continued use of the site after changes take effect constitutes acceptance of the revised terms.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about these terms can be sent to <a href="mailto:info@credentialai.co">info@credentialai.co</a>.</p>
+</main>
+
+<footer class="site-footer">© 2026 Credentialai Systems, Inc. All rights reserved.</footer>
+</body>
+</html>

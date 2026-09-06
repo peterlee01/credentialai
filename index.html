@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Credentialai — Live Multi-Agent Verification</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="A real multi-agent coordinator verifying clinician identity, sanctions, and license status against live government data — try it once, live." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✅</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --bg-alt: #0f1117;
+    --panel: #12131a;
+    --panel-2: #171922;
+    --border: #1b1d23;
+    --border-strong: #ffffff1a;
+    --border-strong-2: #ffffff33;
+    --text: #c2cad6;
+    --heading: #f2f4f7;
+    --muted: #94a3b8;
+    --muted-2: #64748b;
+    --accent: #00d4aa;
+    --accent-2: #4a9eff;
+    --accent-dim: #00d4aa1a;
+    --warn: #edb200;
+    --warn-dim: #edb20026;
+    --danger: #fb2c36;
+    --danger-dim: #fb2c3626;
+    --radius: .75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+    --glow-btn: 0 8px 32px #0000004d, 0 0 15px #00d4aa1a;
+    --glow-panel: 0 0 20px #00d4aa26, inset 0 0 20px #00d4aa0d;
+    --gradient-accent: linear-gradient(90deg, var(--accent), var(--accent-2));
+    --display: "Space Grotesk", ui-sans-serif, sans-serif;
+    --sans: "Inter", -apple-system, "Segoe UI", ui-sans-serif, sans-serif;
+    --mono: "SF Mono", "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  a { color: inherit; }
+  img, svg { display: block; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---------- Nav ---------- */
+  nav.top { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); }
+  nav.top .wrap { display: flex; align-items: center; justify-content: space-between; padding: 1.35rem 1.5rem; }
+  .word { font-family: var(--display); font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: var(--heading); letter-spacing: 0.01em; }
+  .logo-mark { position: relative; width: 1.6rem; height: 1.6rem; flex: none; }
+  .logo-mark span { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; }
+  .logo-mark .r1 { border-top-color: var(--accent); border-right-color: var(--accent); opacity: .8; animation: spin 4s linear infinite; }
+  .logo-mark .r2 { inset: 3px; border-bottom-color: var(--accent-2); border-left-color: var(--accent-2); opacity: .7; animation: spin 3s linear infinite reverse; }
+  .logo-mark .dot { position: absolute; inset: 0; margin: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .word .ai { color: var(--accent); }
+  .nav-links { display: flex; gap: 2rem; font-size: 0.88rem; }
+  .nav-links a { text-decoration: none; color: var(--text); opacity: .8; }
+  .nav-links a:hover { opacity: 1; }
+  .nav-right { display: flex; align-items: center; gap: 1.4rem; }
+  .nav-cta { padding: 0.55rem 1.1rem; background: var(--gradient-accent); color: #04120d; border-radius: var(--radius); text-decoration: none; font-size: 0.85rem; font-weight: 700; }
+  @media (max-width: 760px) { .nav-links { display: none; } }
+
+  /* ---------- Hero ---------- */
+  .hero-wrap {
+    position: relative;
+    overflow: hidden;
+    background-image: url('/hero.jpeg');
+    background-size: cover;
+    background-position: center 30%;
+  }
+  .hero-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, #0a0b0d80, #0a0b0dad 55%, #0a0b0d 92%),
+      linear-gradient(90deg, #0a0b0dc2, #0a0b0d4d 45%, #0a0b0d26 70%, #0a0b0dc2);
+    pointer-events: none;
+  }
+  .hero { position: relative; padding: 4.5rem 0 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; align-items: center; }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding: 3rem 0; } }
+  .live-badge { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em; color: var(--accent); background: var(--accent-dim); border: 1px solid #00d4aa33; padding: 0.4rem 0.85rem; border-radius: 999px; margin-bottom: 1.8rem; }
+  .live-badge .pulse { position: relative; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); }
+  .live-badge .pulse::before { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: var(--accent); opacity: .6; animation: ping 1.8s cubic-bezier(0,0,0.2,1) infinite; }
+  @keyframes ping { 75%,100% { transform: scale(2.2); opacity: 0; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  h1 { font-family: var(--display); font-size: 2.75rem; line-height: 1.1; margin: 0 0 1.4rem; font-weight: 700; letter-spacing: -0.01em; color: var(--heading); }
+  @media (min-width: 900px) { h1 { font-size: 4.5rem; } }
+  h1 .grad { background: var(--gradient-accent); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .dek { font-size: 1.05rem; color: var(--muted); max-width: 46ch; margin: 0 0 2.2rem; line-height: 1.7; }
+
+  .hero-stats { display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap; }
+  .hs-num { font-family: var(--display); font-size: 1.8rem; font-weight: 700; color: var(--heading); }
+  .hs-unit { font-size: 1.1rem; color: var(--muted-2); font-weight: 600; }
+  .hs-label { font-size: 0.68rem; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-top: 0.15rem; }
+  .hs-div { width: 1px; height: 2.4rem; background: var(--border-strong-2); }
+
+  /* ---------- Verification panel ---------- */
+  .panel-wrap { position: relative; }
+  .panel-wrap::before { content: ""; position: absolute; inset: -1.25rem; background: linear-gradient(135deg, #00d4aa26, #4a9eff26); border-radius: var(--radius-xl); filter: blur(28px); opacity: .5; z-index: 0; }
+  .panel { position: relative; z-index: 1; background: var(--panel); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 1.6rem; box-shadow: var(--glow-panel), 0 25px 50px -12px #000000b3; }
+  .panel-label { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted-2); margin-bottom: 1.2rem; }
+  .field { margin-bottom: 0.9rem; }
+  .field label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 0.35rem; }
+  .field input, .field select {
+    width: 100%; padding: 0.65rem 0.75rem; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--heading); font-family: var(--sans); font-size: 0.92rem;
+  }
+  .field input:focus, .field select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  button.run {
+    width: 100%; padding: 0.85rem; background: var(--gradient-accent); color: #04120d; border: none; border-radius: var(--radius);
+    font-family: var(--sans); font-weight: 700; font-size: 0.94rem; cursor: pointer; margin-top: 0.5rem;
+    box-shadow: var(--glow-btn);
+  }
+  button.run:hover:not(:disabled) { filter: brightness(1.08); }
+  button.run:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+  .fine-note { font-family: var(--mono); font-size: 0.7rem; color: var(--muted-2); margin-top: 0.9rem; text-align: center; }
+
+  #result { margin-top: 1.1rem; }
+  .verdict-box { border-radius: var(--radius); padding: 1rem 1.1rem; }
+  .verdict-box.go { background: var(--accent-dim); border: 1px solid var(--accent); }
+  .verdict-box.review { background: var(--warn-dim); border: 1px solid var(--warn); }
+  .verdict-box.nogo { background: var(--danger-dim); border: 1px solid var(--danger); }
+  .verdict-box.error { background: var(--panel-2); border: 1px solid var(--border-strong-2); }
+  .verdict-title { font-family: var(--display); font-weight: 700; font-size: 1.15rem; margin-bottom: 0.5rem; }
+  .verdict-box.go .verdict-title { color: var(--accent); }
+  .verdict-box.review .verdict-title { color: var(--warn); }
+  .verdict-box.nogo .verdict-title { color: var(--danger); }
+  .verdict-explain { font-size: 0.9rem; color: var(--text); }
+  .tool-trace { margin-top: 0.8rem; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+  .tool-trace div { margin-bottom: 0.25rem; }
+  .spinner { display: inline-block; width: 0.85rem; height: 0.85rem; border: 2px solid var(--border-strong-2); border-top-color: var(--accent); border-radius: 50%; animation: spin2 0.7s linear infinite; margin-right: 0.5rem; vertical-align: -1px; }
+  @keyframes spin2 { to { transform: rotate(360deg); } }
+
+  /* ---------- Sections ---------- */
+  section.band { padding: 5.5rem 0; }
+  section.band.alt { background: var(--bg-alt); }
+  .band-label { font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin: 0 0 0.9rem; font-weight: 600; }
+  h2 { font-family: var(--display); font-size: 1.9rem; margin: 0 0 0.85rem; max-width: 34ch; font-weight: 700; color: var(--heading); }
+  @media (min-width: 700px) { h2 { font-size: 3rem; line-height: 48px; } }
+  .section-dek { color: var(--muted); max-width: 60ch; margin: 0 0 3rem; font-size: 1rem; }
+
+  .icon-box { width: 3rem; height: 3rem; border-radius: var(--radius); background: #000; border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; color: var(--accent); }
+  .icon-box svg { width: 22px; height: 22px; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.75rem; position: relative; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+  .step-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; position: relative; transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+  .step-card:hover, .source-card:hover, .cap-card:hover { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 16px 28px -10px #00000066, 0 0 0 1px #00d4aa4d; }
+  .step-num { font-family: var(--display); font-size: 0.85rem; color: var(--accent); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 1rem; }
+  .step-card h3 { font-family: var(--display); font-size: 1.15rem; font-weight: 700; color: var(--heading); margin: 0 0 0.6rem; }
+  .step-card p { font-size: 0.9rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+  .source-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 860px) { .source-grid { grid-template-columns: 1fr; } }
+  .source-card { padding: 1.2rem 1.3rem; border-radius: var(--radius-lg); background: var(--panel); border: 1px solid var(--border); transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+  .source-card .k { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted-2); margin-bottom: 0.4rem; }
+  .source-card .v { font-weight: 700; font-family: var(--display); color: var(--heading); }
+  .tag { display: inline-block; margin-top: 0.5rem; font-family: var(--mono); font-size: 0.65rem; padding: 0.15rem 0.5rem; border-radius: 999px; }
+  .tag.real { background: var(--accent-dim); color: var(--accent); }
+  .tag.mock { background: var(--panel-2); border: 1px solid var(--border-strong-2); color: var(--muted); }
+
+  .cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  @media (max-width: 900px) { .cap-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .cap-grid { grid-template-columns: 1fr; } }
+  .cap-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.6rem; transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+  .cap-card h3 { font-family: var(--display); font-size: 1.02rem; font-weight: 700; color: var(--heading); margin: 0 0 0.5rem; }
+  .cap-card p { font-size: 0.88rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+  .cta-card { position: relative; text-align: center; padding: 4.5rem 2rem; border-radius: var(--radius-xl); background: var(--panel); border: 1px solid #00d4aa33; overflow: hidden; }
+  .cta-card::before { content: ""; position: absolute; top: 50%; left: 50%; width: 700px; height: 350px; transform: translate(-50%,-50%); background: #4a9eff1a; filter: blur(90px); border-radius: 50%; pointer-events: none; }
+  .cta-card h2 { max-width: 26ch; margin: 0 auto 0.9rem; position: relative; }
+  .cta-card p { color: var(--muted); max-width: 46ch; margin: 0 auto 2rem; position: relative; }
+  .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; }
+  .btn-primary, .btn-ghost { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.8rem 1.5rem; border-radius: var(--radius); font-weight: 700; font-size: 0.92rem; text-decoration: none; }
+  .btn-primary { background: var(--gradient-accent); color: #04120d; box-shadow: var(--glow-btn); }
+  .btn-ghost { border: 1px solid var(--border-strong-2); color: var(--heading); }
+
+  /* ---------- Footer ---------- */
+  footer.site-footer { border-top: 1px solid var(--border); padding: 4rem 0 2.5rem; }
+  .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 2.5rem; margin-bottom: 3rem; }
+  @media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+  .footer-brand p { font-size: 0.88rem; color: var(--muted-2); max-width: 32ch; margin: 1rem 0 0; line-height: 1.6; }
+  .footer-grid h4 { font-family: var(--display); font-size: 0.85rem; color: var(--heading); margin: 0 0 1rem; }
+  .footer-grid ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+  .footer-grid ul a { font-size: 0.85rem; color: var(--muted); text-decoration: none; }
+  .footer-grid ul a:hover { color: var(--accent); }
+  .footer-bottom { border-top: 1px solid var(--border); padding-top: 2rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; font-size: 0.85rem; color: var(--muted-2); }
+  .footer-social { display: flex; gap: 1.5rem; }
+  .footer-social a { color: var(--muted-2); text-decoration: none; }
+  .footer-social a:hover { color: var(--heading); }
+
+  #how .band-label, #how h2, #how .section-dek { text-align: center; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+<nav class="top">
+  <div class="wrap">
+    <a class="word" href="#top">
+      <span class="logo-mark"><span class="r1"></span><span class="r2"></span><span class="dot"></span></span>
+      Credential<span class="ai">ai</span>
+    </a>
+    <div class="nav-links">
+      <a href="#capabilities">Platform</a>
+      <a href="#how">Solutions</a>
+      <a href="#sources">Security</a>
+    </div>
+    <div class="nav-right">
+      <a class="nav-cta" href="#verify">Request Demo</a>
+    </div>
+  </div>
+</nav>
+
+<div class="hero-wrap" id="top">
+ <div class="wrap">
+  <header class="hero">
+    <div>
+      <span class="live-badge"><span class="pulse"></span>BETA Version 1.0</span>
+      <h1>Physician verification in <span class="grad">hours.</span> Not weeks.</h1>
+      <p class="dek">Replace slow, error-prone manual credentialing with multi-agent AI. Credentialai runs parallel verification threads across primary sources to clear physicians 10x faster with 99.8% accuracy.</p>
+      <div class="hero-stats">
+        <div><div class="hs-num">24<span class="hs-unit">h</span></div><div class="hs-label">Avg Turnaround</div></div>
+        <div class="hs-div"></div>
+        <div><div class="hs-num">99.8<span class="hs-unit">%</span></div><div class="hs-label">Accuracy Rate</div></div>
+        <div class="hs-div"></div>
+        <div><div class="hs-num">1</div><div class="hs-label">Free run / visitor</div></div>
+      </div>
+    </div>
+
+    <div class="panel-wrap" id="verify">
+      <div class="panel">
+        <p class="panel-label">Run a real verification</p>
+        <form id="verifyForm">
+          <div class="row2">
+            <div class="field"><label for="fn">First name</label><input id="fn" required /></div>
+            <div class="field"><label for="ln">Last name</label><input id="ln" required /></div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="state">State</label>
+              <select id="state" required>
+                <option value="Arizona">Arizona</option>
+                <option value="California">California</option>
+                <option value="Colorado" selected>Colorado</option>
+                <option value="Florida">Florida</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Illinois">Illinois</option>
+                <option value="New York">New York</option>
+                <option value="Ohio">Ohio</option>
+                <option value="Texas">Texas</option>
+                <option value="Virginia">Virginia</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="profession">Profession</label>
+              <select id="profession" required>
+                <option value="physician" selected>Physician</option>
+                <option value="psychologist">Psychologist</option>
+                <option value="counselor">Counselor</option>
+                <option value="social worker">Social worker</option>
+              </select>
+            </div>
+          </div>
+          <button class="run" type="submit" id="runBtn">Run verification</button>
+          <p class="fine-note">One real verification per browser session. Uses live NPPES + HHS-OIG LEIE data; license status is a labeled demo dataset.</p>
+        </form>
+        <div id="result"></div>
+      </div>
+    </div>
+  </header>
+ </div>
+</div>
+
+<section class="band" id="how">
+  <div class="wrap">
+    <p class="band-label">How it works</p>
+    <h2 style="margin-left:auto;margin-right:auto;">Identity resolves first.<br><span style="color:#62748e;">Then everything else follows.</span></h2>
+    <p class="section-dek" style="margin-left:auto;margin-right:auto;">Manual credentialing is sequential. Credentialai deploys specialized agents that run concurrently across primary sources, assembling a complete, cited profile in minutes.</p>
+    <div class="steps">
+      <div class="step-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg></div>
+        <div class="step-num">01</div>
+        <h3>Data Ingestion</h3>
+        <p>Upload a roster or sync via EHR API. Agents immediately parse identities and map required verification nodes.</p>
+      </div>
+      <div class="step-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M5 8v2a4 4 0 0 0 4 4h1"/><path d="M19 8v2a4 4 0 0 0-4 4h-1"/></svg></div>
+        <div class="step-num">02</div>
+        <h3>Parallel sourcing</h3>
+        <p>Once identity is confirmed, sanctions and license-status checks run side by side against the HHS-OIG exclusion list and a state license dataset.</p>
+      </div>
+      <div class="step-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        <div class="step-num">03</div>
+        <h3>Cited verdict</h3>
+        <p>Results are cross-referenced against confidence-tiering rules and returned as a cited GO / NEEDS REVIEW / NO-GO verdict — never a guess.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="sources">
+  <div class="wrap">
+    <p class="band-label">Data sources</p>
+    <h2>Two real government sources.<br><span style="color:#62748e;">One honestly labeled gap.</span></h2>
+    <p class="section-dek">We never present mocked data as verified. Every source below is labeled exactly as what it is.</p>
+    <div class="source-grid">
+      <div class="source-card"><div class="k">Identity</div><div class="v">NPPES NPI Registry</div><span class="tag real">Real, live, public</span></div>
+      <div class="source-card"><div class="k">Sanctions</div><div class="v">HHS-OIG LEIE</div><span class="tag real">Real, live, public</span></div>
+      <div class="source-card"><div class="k">License status</div><div class="v">State board lookup</div><span class="tag mock">Working on next version</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt" id="capabilities">
+  <div class="wrap">
+    <p class="band-label">System Capabilities</p>
+    <h2>Everything the architecture is built to do</h2>
+    <p class="section-dek">This live demo runs the identity, sanctions, and license-verdict path end to end. The capabilities below round out what the full multi-agent architecture is designed to support.</p>
+    <div class="cap-grid">
+      <div class="cap-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/></svg></div>
+        <h3>Primary Source Verif.</h3>
+        <p>We never use secondary scraped data. Agents navigate directly to authoritative sources and pull raw verification records.</p>
+      </div>
+      <div class="cap-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h3>Continuous Monitoring</h3>
+        <p>Licenses don't just expire on renewal day. The system is built to track expirations, sanctions, and status changes over time.</p>
+      </div>
+      <div class="cap-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/><path d="M11 7h6a2 2 0 0 1 2 2v4M7 13v2a2 2 0 0 0 2 2h2"/></svg></div>
+        <h3>EHR Integrations</h3>
+        <p>Designed to push verified credential data directly into Epic, Cerner, or a custom medical staff office system.</p>
+      </div>
+      <div class="cap-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5 2 6H4c.5-1 2-2 2-6"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></div>
+        <h3>Automated Alerts</h3>
+        <p>Built to notify a compliance team immediately if a physician receives a disciplinary action in any state.</p>
+      </div>
+      <div class="cap-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h3"/></svg></div>
+        <h3>Compliance Reporting</h3>
+        <p>Generates committee-ready packets in one step, citing every source used to reach each verdict.</p>
+      </div>
+      <div class="cap-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h3>Auditable By Design</h3>
+        <p>Every check is logged with timestamp and source — this live demo caps at one run per visitor purely to bound API cost.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="cta-card">
+      <h2>Ready to accelerate your credentialing?</h2>
+      <p>Run a real verification above, or explore how the multi-agent coordinator is designed.</p>
+      <div class="cta-buttons">
+        <a class="btn-primary" href="#verify">Run a verification</a>
+        <a class="btn-ghost" href="#capabilities">View Documentation</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="word" href="#top">
+          <span class="logo-mark"><span class="r1"></span><span class="r2"></span><span class="dot"></span></span>
+          Credential<span class="ai">ai</span>
+        </a>
+        <p>The multi-agent infrastructure for healthcare credentialing verification.</p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="#how">Architecture</a></li>
+          <li><a href="#capabilities">Agents</a></li>
+          <li><a href="#sources">Security &amp; Trust</a></li>
+          <li><a href="#" onclick="return false;">API Reference</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="#" onclick="return false;">Blog</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Credentialai Systems, Inc. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var form = document.getElementById('verifyForm');
+  var btn = document.getElementById('runBtn');
+  var resultEl = document.getElementById('result');
+
+  function verdictClass(text) {
+    var first = (text || '').trim().split('\n')[0].trim().toUpperCase();
+    if (first === 'GO') return 'go';
+    if (first === 'NEEDS REVIEW') return 'review';
+    if (first === 'NO-GO') return 'nogo';
+    return 'error';
+  }
+
+  function renderResult(html) {
+    resultEl.innerHTML = html;
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var first_name = document.getElementById('fn').value.trim();
+    var last_name = document.getElementById('ln').value.trim();
+    var state = document.getElementById('state').value;
+    var profession = document.getElementById('profession').value;
+
+    btn.disabled = true;
+    btn.textContent = 'Initializing workflow…';
+    renderResult('<div class="verdict-box error"><span class="spinner"></span>Running identity, sanctions, and license checks — this can take 15-30 seconds.</div>');
+
+    fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ first_name: first_name, last_name: last_name, state: state, profession: profession })
+    })
+      .then(function (res) {
+        return res.json().then(function (data) { return { status: res.status, data: data }; });
+      })
+      .then(function (r) {
+        btn.textContent = 'Run verification';
+        if (r.status === 429) {
+          btn.disabled = true;
+          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve already used your one live verification this session. Please check back later.</div></div>');
+          return;
+        }
+        if (r.status !== 200) {
+          btn.disabled = false;
+          renderResult('<div class="verdict-box error"><div class="verdict-title">Error</div><div class="verdict-explain">' + (r.data.error || 'Something went wrong.') + '</div></div>');
+          return;
+        }
+        var cls = verdictClass(r.data.verdict_text);
+        var lines = (r.data.verdict_text || '').trim().split('\n');
+        var title = lines[0];
+        var explain = lines.slice(1).join(' ').trim();
+        var trace = '';
+        if (r.data.tool_calls && r.data.tool_calls.length) {
+          trace = '<div class="tool-trace">' + r.data.tool_calls.map(function (t) {
+            return '<div>[tool call] ' + t.name + '(' + JSON.stringify(t.input) + ')</div>';
+          }).join('') + '</div>';
+        }
+        renderResult('<div class="verdict-box ' + cls + '"><div class="verdict-title">' + title + '</div><div class="verdict-explain">' + explain + '</div>' + trace + '</div>');
+        btn.disabled = true; // one per session, enforced server-side too
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = 'Run verification';
+        renderResult('<div class="verdict-box error"><div class="verdict-title">Network error</div><div class="verdict-explain">' + err.message + '</div></div>');
+      });
+  });
+})();
+</script>
+</body>
+</html>

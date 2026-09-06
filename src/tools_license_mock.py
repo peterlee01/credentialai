@@ -30,6 +30,11 @@ _MOCK_LICENSE_DB = {
         "Florida": "pending", "Georgia": "active", "Illinois": "active",
         "New York": "active", "Ohio": "not_found", "Texas": "not_found", "Virginia": "expired",
     },
+    "physician": {
+        "Arizona": "active", "California": "active", "Colorado": "active",
+        "Florida": "expired", "Georgia": "pending", "Illinois": "active",
+        "New York": "active", "Ohio": "not_found", "Texas": "active", "Virginia": "pending",
+    },
 }
 
 
@@ -38,7 +43,7 @@ def check_license_status(profession: str, state: str) -> str:
     """Look up a clinician's professional license status in a given state.
 
     Args:
-        profession: One of "psychologist", "counselor", "social worker".
+        profession: One of "psychologist", "counselor", "social worker", "physician".
         state: Full state name, e.g. "Colorado".
     """
     table = _MOCK_LICENSE_DB.get(profession.strip().lower(), {})

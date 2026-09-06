@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Contact — Credentialai</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d; --panel: #12131a; --border: #1b1d23; --border-strong: #ffffff1a; --border-strong-2: #ffffff33;
+    --text: #c2cad6; --heading: #f2f4f7; --muted: #94a3b8; --muted-2: #64748b;
+    --accent: #00d4aa; --accent-2: #4a9eff; --accent-dim: #00d4aa1a;
+    --radius: .75rem; --radius-lg: 1rem;
+    --gradient-accent: linear-gradient(90deg, var(--accent), var(--accent-2));
+    --display: "Space Grotesk", ui-sans-serif, sans-serif;
+    --sans: "Inter", -apple-system, "Segoe UI", ui-sans-serif, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 16px; line-height: 1.7; }
+  a { color: inherit; }
+  .wrap { max-width: 800px; margin: 0 auto; padding: 0 1.5rem; }
+  nav.top { max-width: 1160px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 1.35rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .word { font-family: var(--display); font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: var(--heading); }
+  .logo-mark { position: relative; width: 1.6rem; height: 1.6rem; flex: none; }
+  .logo-mark span { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; }
+  .logo-mark .r1 { border-top-color: var(--accent); border-right-color: var(--accent); opacity: .8; animation: spin 4s linear infinite; }
+  .logo-mark .r2 { inset: 3px; border-bottom-color: var(--accent-2); border-left-color: var(--accent-2); opacity: .7; animation: spin 3s linear infinite reverse; }
+  .logo-mark .dot { position: absolute; inset: 0; margin: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .word .ai { color: var(--accent); }
+  .back { font-size: 0.85rem; color: var(--muted); text-decoration: none; }
+  .back:hover { color: var(--accent); }
+  main { padding: 4.5rem 0 5rem; }
+  .eyebrow { font-family: "SF Mono", monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin: 0 0 1rem; font-weight: 600; }
+  h1 { font-family: var(--display); font-size: 2.4rem; font-weight: 700; color: var(--heading); margin: 0 0 1.2rem; line-height: 1.2; }
+  p { color: var(--text); margin: 0 0 1.3rem; max-width: 60ch; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; margin-top: 2rem; }
+  .card h3 { font-family: var(--display); font-size: 1rem; color: var(--heading); margin: 0 0 0.6rem; }
+  .card a.mail { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--accent); font-weight: 600; text-decoration: none; font-size: 1.05rem; }
+  .card a.mail:hover { text-decoration: underline; }
+  .card p { font-size: 0.88rem; color: var(--muted); margin: 0.6rem 0 0; }
+  footer.site-footer { border-top: 1px solid var(--border); padding: 2.5rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--muted-2); }
+</style>
+</head>
+<body>
+<nav class="top">
+  <a class="word" href="index.html">
+    <span class="logo-mark"><span class="r1"></span><span class="r2"></span><span class="dot"></span></span>
+    Credential<span class="ai">ai</span>
+  </a>
+  <a class="back" href="index.html">← Back to home</a>
+</nav>
+
+<main class="wrap">
+  <p class="eyebrow">Contact</p>
+  <h1>Get in touch</h1>
+  <p>Questions about how the verification demo works, the underlying architecture, or anything else about Credentialai — reach out and we'll get back to you.</p>
+
+  <div class="card">
+    <h3>General inquiries</h3>
+    <a class="mail" href="mailto:info@credentialai.co">info@credentialai.co</a>
+    <p>We typically respond within a few business days.</p>
+  </div>
+</main>
+
+<footer class="site-footer">© 2026 Credentialai Systems, Inc. All rights reserved.</footer>
+</body>
+</html>

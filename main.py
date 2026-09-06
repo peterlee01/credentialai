@@ -18,13 +18,13 @@ load_dotenv()
 def main() -> None:
     if len(sys.argv) != 5:
         print('Usage: python main.py "First" "Last" "State" "profession"')
-        print('  profession is one of: psychologist, counselor, "social worker"')
+        print('  profession is one of: psychologist, counselor, "social worker", physician')
         sys.exit(1)
 
     first_name, last_name, state, profession = sys.argv[1:5]
 
     print(f"Verifying {first_name} {last_name} — {profession} in {state}...\n")
-    verdict_text = run_verification(first_name, last_name, state, profession)
+    verdict_text, tool_calls = run_verification(first_name, last_name, state, profession)
     print("\n--- Verdict ---")
     print(verdict_text)
 
