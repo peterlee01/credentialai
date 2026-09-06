@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from http.server import BaseHTTPRequestHandler  # noqa: E402
 
 from src.coordinator import run_verification  # noqa: E402
+from src.tools_requisitions import match_open_requisitions  # noqa: E402
 
 ALLOWED_STATES = {
     "Arizona", "California", "Colorado", "Florida", "Georgia",
@@ -84,8 +85,25 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(500, {"error": "Something went wrong running verification."})
             return
 
+        requisition_matches = None
+        match_call = next((t for t in tool_calls if t["name"] == "match_open_requisitions"), None)
+        if match_call:
+            try:
+                result = json.loads(match_open_requisitions(**match_call["input"]))
+                requisition_matches = result.get("matches", [])
+            except Exception:
+                requisition_matches = None
+
         _seen_ips.add(client_ip)
-        self._send_json(200, {"verdict_text": verdict_text, "tool_calls": tool_calls}, set_cookie=True)
+        self._send_json(
+            200,
+            {
+                "verdict_text": verdict_text,
+                "tool_calls": tool_calls,
+                "requisition_matches": requisition_matches,
+            },
+            set_cookie=True,
+        )
 
     def _send_json(self, status: int, payload: dict, set_cookie: bool = False):
         self.send_response(status)

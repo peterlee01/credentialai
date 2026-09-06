@@ -144,6 +144,13 @@
   .spinner { display: inline-block; width: 0.85rem; height: 0.85rem; border: 2px solid var(--border-strong-2); border-top-color: var(--accent); border-radius: 50%; animation: spin2 0.7s linear infinite; margin-right: 0.5rem; vertical-align: -1px; }
   @keyframes spin2 { to { transform: rotate(360deg); } }
 
+  .match-card { margin-top: 0.8rem; border-radius: var(--radius); padding: 1rem 1.1rem; background: var(--accent-dim); border: 1px solid var(--accent); }
+  .match-card .match-title { font-family: var(--display); font-weight: 700; font-size: 0.95rem; color: var(--accent); margin-bottom: 0.6rem; }
+  .match-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .match-row .match-hospital { font-weight: 700; font-family: var(--display); color: var(--heading); font-size: 0.9rem; }
+  .match-row .match-role { font-size: 0.8rem; color: var(--muted); text-align: right; }
+  .match-empty { margin-top: 0.8rem; font-size: 0.85rem; color: var(--muted-2); }
+
   /* ---------- Sections ---------- */
   section.band { padding: 5.5rem 0; }
   section.band.alt { background: var(--bg-alt); }
@@ -155,8 +162,9 @@
   .icon-box { width: 3rem; height: 3rem; border-radius: var(--radius); background: #000; border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; color: var(--accent); }
   .icon-box svg { width: 22px; height: 22px; }
 
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.75rem; position: relative; }
-  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.75rem; position: relative; }
+  @media (max-width: 900px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .steps { grid-template-columns: 1fr; } }
   .step-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; position: relative; transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
   .step-card:hover, .source-card:hover, .cap-card:hover { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 16px 28px -10px #00000066, 0 0 0 1px #00d4aa4d; }
   .step-num { font-family: var(--display); font-size: 0.85rem; color: var(--accent); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 1rem; }
@@ -306,6 +314,12 @@
         <div class="step-num">03</div>
         <h3>Cited verdict</h3>
         <p>Results are cross-referenced against confidence-tiering rules and returned as a cited GO / NEEDS REVIEW / NO-GO verdict — never a guess.</p>
+      </div>
+      <div class="step-card">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"/><path d="M2 21h20"/><path d="M10 9h.01M14 9h.01M10 13h.01M14 13h.01M10 17h.01M14 17h.01"/></svg></div>
+        <div class="step-num">04</div>
+        <h3>Eligibility matching</h3>
+        <p>Once a clinician clears verification, the coordinator checks which of a hospital's own open roles they're now eligible for — matching against existing requisitions, not building a physician-side marketplace.</p>
       </div>
     </div>
   </div>
@@ -477,7 +491,17 @@
             return '<div>[tool call] ' + t.name + '(' + JSON.stringify(t.input) + ')</div>';
           }).join('') + '</div>';
         }
-        renderResult('<div class="verdict-box ' + cls + '"><div class="verdict-title">' + title + '</div><div class="verdict-explain">' + explain + '</div>' + trace + '</div>');
+        var matchHtml = '';
+        var matches = r.data.requisition_matches;
+        if (matches && matches.length) {
+          matchHtml = '<div class="match-card"><div class="match-title">Eligible open role' + (matches.length > 1 ? 's' : '') + '</div>' +
+            matches.map(function (m) {
+              return '<div class="match-row"><span class="match-hospital">' + m.hospital + '</span><span class="match-role">' + m.specialty + ' · ' + m.state + '</span></div>';
+            }).join('') + '<span class="tag mock">Illustrative demo data</span></div>';
+        } else if (matches && matches.length === 0) {
+          matchHtml = '<p class="match-empty">No open roles matched in this demo requisitions dataset for ' + state + '.</p>';
+        }
+        renderResult('<div class="verdict-box ' + cls + '"><div class="verdict-title">' + title + '</div><div class="verdict-explain">' + explain + '</div>' + trace + '</div>' + matchHtml);
         btn.disabled = true; // one per session, enforced server-side too
       })
       .catch(function (err) {

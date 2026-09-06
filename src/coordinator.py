@@ -42,11 +42,9 @@ unambiguous match (NPI ...); OIG LEIE returned 0 hits; license status is active 
 the demo license dataset."
 - If the license tool result includes a "note" about being demo/illustrative data, repeat that \
 caveat in the paragraph — never present mocked license data as verified.
-- On a GO verdict, after the verification explanation, add one sentence naming any hospital/role \
-matched by match_open_requisitions (e.g. "Mercy General has an open Internal Medicine role this \
-clinician is eligible for."), or state plainly that no open roles matched if match_count is 0. \
-Repeat match_open_requisitions' demo-data caveat when mentioning a match — never present it as a \
-real, live job posting.
+- The paragraph should only explain the identity/sanctions/license decision. Do not mention \
+match_open_requisitions or any hospital/role match in the paragraph text — that is surfaced \
+separately in the product UI, not in this prose.
 - Do not write a multi-section report, do not add a "Recommendation" section, do not ask a \
 follow-up question. One verdict line, one explanatory paragraph. That is the entire response.
 """
