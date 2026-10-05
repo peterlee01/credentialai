@@ -16,7 +16,7 @@ confidence-tiered, human-escalatable trust pattern driving every verdict.
 | NPPES NPI Registry (identity) | **Real, live, public API** — no key required |
 | HHS-OIG LEIE (sanctions/exclusions) | **Real, live, public CSV** — downloaded and cached locally |
 | State license/board status | **Mocked.** No unified free public API exists across all 50 state boards. A small illustrative dataset (10 states × 4 professions) stands in so the pipeline can be exercised end-to-end. Every response from this tool is labeled as demo data — never treat it as verified current law. |
-| Hospital open requisitions | **Mocked.** A small illustrative list of open roles at a handful of hospitals, used only for eligibility matching (see "Requisition matching" below) — not a live job feed from any real hospital. |
+| CMS Hospital General Information (facility matching) | **Real, live, public API** — no key required. Facility records only; it does not say which facilities are hiring. |
 
 ## Setup
 
@@ -49,23 +49,27 @@ Coordinator (Claude, via Tool Runner)
   -> get_npi_identity        (real: NPPES)
   -> check_sanctions         (real: HHS-OIG LEIE)      \  called after identity
   -> check_license_status    (mocked, clearly labeled)  /  resolves, in parallel
-  -> [only if verdict is GO] match_open_requisitions (mocked, clearly labeled)
+  -> [only if verdict is GO] match_facilities        (real: CMS hospital list)
+  -> [only if verdict is GO] rank_facility_matches   (coordinator orders the shortlist, with reasons)
   -> synthesized verdict: GO / NEEDS REVIEW / NO-GO, cited
 ```
 
-## Requisition matching
+## Facility matching
 
-Once a clinician clears verification (GO), the coordinator also checks which
-of a hospital's own already-open roles they're now eligible for. This is
-**eligibility-gated matching against a single hospital's existing
-requisitions — not a physician-hospital marketplace.** There's no
-physician-side discovery and no cross-hospital liquidity being built here;
-building an actual two-sided marketplace means solving supply/demand
-liquidity from scratch, which is a much harder and different business (see
-the "not yet" call on marketplace matching in the portfolio case study, and
-Nomad Health's 2026 marketplace wind-down as the cautionary example). Matching
-only ever runs downstream of a clean verdict — credentialing first, placement
-second.
+Once a clinician clears verification (GO), the coordinator matches them to real
+facilities in their state. `match_facilities` pulls the state's hospitals from
+the public CMS "Hospital General Information" dataset and scores each one on
+closeness to the clinician's NPPES practice address (same city, then same ZIP
+area), how well the facility type suits the profession and specialty, and CMS
+overall rating. The coordinator then orders the shortlist and writes a
+one-sentence reason for each via `rank_facility_matches`. If it supplies no
+valid ranking, the scored order is used, so a cleared clinician always gets a
+list.
+
+**This matches clinicians to facilities, not to job openings.** CMS publishes
+facility records, not vacancies, so nothing here says a facility is hiring.
+There is still no physician-side sign-up or marketplace. Matching only ever
+runs downstream of a clean verdict — credentialing first, matching second.
 
 Every verification is appended to `audit_log.jsonl` (gitignored) with the request, and the full
 verdict text.
@@ -78,12 +82,6 @@ actually run and observed):
   candidates, no clean profession match)
 - `NO-GO` via sanctions — "John Smith, social worker, California": 2 real HHS-OIG LEIE hits
 - `NO-GO` via expired license — "Sarah Johnson, social worker, Virginia": mocked expired status
-- `GO` with a requisition match — "David Abbey, physician, Colorado": a real, unambiguous single
-  NPPES match (NPI 1568483196), 0 sanctions hits, active mocked license, matched to a mocked open
-  Internal Medicine role at Mercy General
-- `GO` with no requisition match — "Daniel Abelev, physician, Arizona": a real, unambiguous single
-  NPPES match (NPI 1417573163), 0 sanctions hits, active mocked license, correctly reported no
-  open roles matched in the mocked requisition dataset for that state
 
 ## Human review queue
 

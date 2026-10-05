@@ -37,6 +37,8 @@ def get_npi_identity(first_name: str, last_name: str, state: str) -> str:
         basic = r.get("basic", {})
         taxonomies = r.get("taxonomies", [])
         primary_taxonomy = next((t for t in taxonomies if t.get("primary")), taxonomies[0] if taxonomies else {})
+        addresses = r.get("addresses", [])
+        practice = next((a for a in addresses if a.get("address_purpose") == "LOCATION"), addresses[0] if addresses else {})
         matches.append({
             "npi": r.get("number"),
             "first_name": basic.get("first_name"),
@@ -46,6 +48,8 @@ def get_npi_identity(first_name: str, last_name: str, state: str) -> str:
             "primary_taxonomy_desc": primary_taxonomy.get("desc"),
             "primary_taxonomy_state": primary_taxonomy.get("state"),
             "license": primary_taxonomy.get("license"),
+            "practice_city": practice.get("city"),
+            "practice_zip": (practice.get("postal_code") or "")[:5],
         })
 
     return json.dumps({

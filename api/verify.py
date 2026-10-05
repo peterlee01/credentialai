@@ -3,7 +3,7 @@
 Wraps src.coordinator.run_verification (the same code the CLI uses) with the
 HTTP contract the existing frontend (index.html) already expects: POST a
 {first_name, last_name, state, profession} JSON body, get back
-{verdict_text, tool_calls} on success, 429 once the visitor has already used
+{verdict_text, tool_calls, facility_matches} on success, 429 once the visitor has already used
 their one free verification, or {error} on a bad request or failure.
 """
 
@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from http.server import BaseHTTPRequestHandler  # noqa: E402
 
 from src.coordinator import run_verification  # noqa: E402
-from src.tools_requisitions import match_open_requisitions  # noqa: E402
+from src.tools_facilities import build_facility_matches  # noqa: E402
 
 ALLOWED_STATES = {
     "Arizona", "California", "Colorado", "Florida", "Georgia",
@@ -85,14 +85,10 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(500, {"error": "Something went wrong running verification."})
             return
 
-        requisition_matches = None
-        match_call = next((t for t in tool_calls if t["name"] == "match_open_requisitions"), None)
-        if match_call:
-            try:
-                result = json.loads(match_open_requisitions(**match_call["input"]))
-                requisition_matches = result.get("matches", [])
-            except Exception:
-                requisition_matches = None
+        try:
+            facility_matches = build_facility_matches(tool_calls)
+        except Exception:
+            facility_matches = None
 
         _seen_ips.add(client_ip)
         self._send_json(
@@ -100,7 +96,7 @@ class handler(BaseHTTPRequestHandler):
             {
                 "verdict_text": verdict_text,
                 "tool_calls": tool_calls,
-                "requisition_matches": requisition_matches,
+                "facility_matches": facility_matches,
             },
             set_cookie=True,
         )

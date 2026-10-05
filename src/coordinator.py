@@ -7,7 +7,7 @@ import anthropic
 from .tools_npi import get_npi_identity
 from .tools_sanctions import check_sanctions
 from .tools_license_mock import check_license_status
-from .tools_requisitions import match_open_requisitions
+from .tools_facilities import match_facilities, rank_facility_matches
 from .audit import log_verification
 
 MODEL = "claude-opus-4-8"
@@ -20,10 +20,14 @@ Sequencing (follow exactly):
 2. Only after you have the identity result, call check_sanctions and check_license_status \
 (you may call both in the same turn).
 3. After you have all three tool results, determine the verdict (rules below).
-4. Only if the verdict is GO, call match_open_requisitions using the clinician's profession, \
-state, and the primary_taxonomy_desc from the identity result as specialty. Do not call this \
-tool for a NEEDS REVIEW or NO-GO verdict — matching only ever applies to a clinician who has \
+4. Only if the verdict is GO, call match_facilities using the clinician's profession, state, and \
+the primary_taxonomy_desc, practice_city and practice_zip from the identity result. Do not call \
+this tool for a NEEDS REVIEW or NO-GO verdict — matching only ever applies to a clinician who has \
 already cleared verification, never as an independent lookup.
+5. After match_facilities returns, call rank_facility_matches once with up to 5 of its candidates, \
+best fit first. Weigh closeness to the practice address, how well the facility type suits the \
+profession and specialty, and CMS rating. Give each a one-sentence reason under 15 words that \
+uses only facts from the match_facilities result. Never state or imply that a facility is hiring.
 Do not skip steps or guess before calling the tools.
 
 Verdict rules (apply exactly, in this order):
@@ -43,7 +47,7 @@ the demo license dataset."
 - If the license tool result includes a "note" about being demo/illustrative data, repeat that \
 caveat in the paragraph — never present mocked license data as verified.
 - The paragraph should only explain the identity/sanctions/license decision. Do not mention \
-match_open_requisitions or any hospital/role match in the paragraph text — that is surfaced \
+match_facilities, rank_facility_matches or any facility match in the paragraph text — that is surfaced \
 separately in the product UI, not in this prose.
 - Do not write a multi-section report, do not add a "Recommendation" section, do not ask a \
 follow-up question. One verdict line, one explanatory paragraph. That is the entire response.
@@ -68,7 +72,8 @@ def run_verification(first_name: str, last_name: str, state: str, profession: st
         model=MODEL,
         max_tokens=4096,
         system=SYSTEM_PROMPT,
-        tools=[get_npi_identity, check_sanctions, check_license_status, match_open_requisitions],
+        tools=[get_npi_identity, check_sanctions, check_license_status, match_facilities,
+               rank_facility_matches],
         messages=[{"role": "user", "content": user_message}],
     )
 

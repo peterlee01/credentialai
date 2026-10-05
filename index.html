@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Credentialai — Live Multi-Agent Verification</title>
+<title>Credentialai — Physician Credentialing and AI Matching</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="description" content="A real multi-agent coordinator verifying clinician identity, sanctions, and license status against live government data — try it once, live." />
+<meta name="description" content="Credentialai verifies a physician's identity, sanctions and license, then matches cleared physicians to facilities that fit. Try one live run." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✅</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -210,7 +210,108 @@
   .footer-social a { color: var(--muted-2); text-decoration: none; }
   .footer-social a:hover { color: var(--heading); }
 
-  #how .band-label, #how h2, #how .section-dek { text-align: center; margin-left: auto; margin-right: auto; }
+  /* ---------- Shared helpers ---------- */
+  :root { --match: var(--accent-2); --match-dim: #4a9eff1f; }
+  .center { text-align: center; }
+  .center h2, .center .section-dek { margin-left: auto; margin-right: auto; }
+  h2 .soft { color: #62748e; }
+  .chip { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.03em; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--muted); white-space: nowrap; }
+  .chip.ok { color: var(--accent); background: var(--accent-dim); border-color: #00d4aa33; }
+  .chip.fit { color: var(--match); background: var(--match-dim); border-color: #4a9eff40; }
+  .chip.warn { color: var(--warn); background: var(--warn-dim); border-color: #edb20040; }
+
+  /* ---------- Hero value pair ---------- */
+  .hero-values { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; max-width: 34rem; margin-bottom: 2rem; }
+  @media (max-width: 520px) { .hero-values { grid-template-columns: 1fr; } }
+  .hero-value { display: flex; gap: 0.8rem; align-items: flex-start; padding: 1rem; border-radius: var(--radius-lg); background: #0a0b0dcc; border: 1px solid var(--border-strong); backdrop-filter: blur(6px); text-decoration: none; transition: border-color 0.2s ease, transform 0.2s ease; }
+  .hero-value:hover { transform: translateY(-3px); border-color: var(--c); }
+  .hero-value .hv-icon { flex: none; width: 2.2rem; height: 2.2rem; border-radius: 0.6rem; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+  .hero-value .hv-icon svg { width: 18px; height: 18px; }
+  .hero-value b { display: block; font-family: var(--display); color: var(--heading); font-size: 0.98rem; margin-bottom: 0.15rem; }
+  .hero-value span { font-size: 0.82rem; color: var(--muted); line-height: 1.45; display: block; }
+  .t-cred { --c: var(--accent); }
+  .t-match { --c: var(--match); }
+
+  /* ---------- Two value propositions ---------- */
+  .values-band { position: relative; overflow: hidden; }
+  .values-band::before { content: ""; position: absolute; inset: 0; background: radial-gradient(600px 320px at 22% 38%, #00d4aa14, transparent 70%), radial-gradient(600px 320px at 78% 38%, #4a9eff17, transparent 70%); pointer-events: none; }
+  .values-band .wrap { position: relative; }
+  .value-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 900px) { .value-grid { grid-template-columns: 1fr; } }
+  .value-card { scroll-margin-top: 6rem; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 2rem; display: flex; flex-direction: column; gap: 1.4rem; border-top: 2px solid var(--c); }
+  .value-kicker { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c); font-weight: 600; }
+  .value-card h3 { font-family: var(--display); font-size: 1.7rem; line-height: 1.15; color: var(--heading); margin: 0.5rem 0 0.6rem; }
+  .value-card > div > p { margin: 0; color: var(--muted); font-size: 0.98rem; }
+  .value-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+  .value-list li { display: flex; gap: 0.65rem; font-size: 0.92rem; color: var(--text); }
+  .value-list li::before { content: ""; flex: none; width: 1.1rem; height: 1.1rem; margin-top: 0.22rem; border-radius: 50%; background: color-mix(in srgb, var(--c) 18%, transparent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12 4 4 8-8'/%3E%3C/svg%3E") center / 0.7rem no-repeat; }
+
+  /* Product mock-ups (illustrative) */
+  .mock { background: #0a0b0d; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 1.1rem; box-shadow: 0 20px 40px -18px #000000cc, 0 0 24px color-mix(in srgb, var(--c) 12%, transparent); margin-top: auto; }
+  .mock-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.9rem; }
+  .mock-person { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+  .avatar { flex: none; width: 2.3rem; height: 2.3rem; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 0.8rem; color: #04120d; }
+  .mock-person b { display: block; font-family: var(--display); color: var(--heading); font-size: 0.92rem; line-height: 1.2; }
+  .mock-person small { color: var(--muted-2); font-size: 0.74rem; }
+  .mock-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.75rem; border-radius: 0.6rem; background: var(--panel); border: 1px solid var(--border); margin-bottom: 0.45rem; }
+  .mock-row .l { min-width: 0; }
+  .mock-row .l b { display: block; font-size: 0.84rem; color: var(--heading); font-weight: 600; }
+  .mock-row .l small { font-family: var(--mono); font-size: 0.66rem; color: var(--muted-2); }
+  .mock-row.dim { opacity: 0.55; }
+  .mock-verdict { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.75rem; padding: 0.75rem 0.9rem; border-radius: 0.6rem; background: var(--accent-dim); border: 1px solid var(--accent); }
+  .mock-verdict b { font-family: var(--display); color: var(--accent); font-size: 1.05rem; }
+  .mock-verdict small { color: var(--text); font-size: 0.76rem; }
+  .mock-note { margin: 0.8rem 0 0; font-family: var(--mono); font-size: 0.64rem; color: var(--muted-2); text-align: center; }
+  .mock-arrow { display: flex; justify-content: center; color: var(--match); margin: 0.15rem 0 0.6rem; }
+  .mock-arrow svg { width: 18px; height: 18px; }
+
+  /* ---------- How it works: phased pipeline ---------- */
+  .phases { display: grid; grid-template-columns: 3fr 1fr; gap: 1.75rem; margin-bottom: 0.9rem; }
+  .phase { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c); display: flex; align-items: center; gap: 0.75rem; }
+  .phase::after { content: ""; flex: 1; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--c), transparent); }
+  @media (max-width: 900px) { .phases { display: none; } }
+  .step-card.t-match .step-num, .step-card.t-match .icon-box { color: var(--match); }
+  .step-card.t-match:hover { border-color: var(--match); box-shadow: 0 16px 28px -10px #00000066, 0 0 0 1px #4a9eff4d; }
+  .step-tag { display: none; font-family: var(--mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c); margin-bottom: 0.9rem; }
+  @media (max-width: 900px) { .step-tag { display: block; } }
+
+  /* ---------- Before / with ---------- */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: stretch; }
+  @media (max-width: 800px) { .compare { grid-template-columns: 1fr; } }
+  .compare-card { border-radius: var(--radius-xl); padding: 2rem; border: 1px solid var(--border); background: var(--panel); }
+  .compare-card.with { border-color: #00d4aa40; background: linear-gradient(160deg, #00d4aa12, #4a9eff12 70%), var(--panel); box-shadow: var(--glow-panel); }
+  .compare-card h3 { font-family: var(--display); font-size: 1.25rem; color: var(--heading); margin: 0 0 1.2rem; }
+  .compare-card.before h3 { color: var(--muted); }
+  .compare-card ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.9rem; }
+  .compare-card li { display: flex; gap: 0.75rem; font-size: 0.95rem; }
+  .compare-card.before li { color: var(--muted); }
+  .compare-card li svg { flex: none; width: 18px; height: 18px; margin-top: 0.2rem; }
+  .compare-card.before li svg { color: var(--muted-2); }
+  .compare-card.with li svg { color: var(--accent); }
+
+  /* ---------- Audiences ---------- */
+  .aud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 800px) { .aud-grid { grid-template-columns: 1fr; } }
+  .aud-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 2rem; display: flex; flex-direction: column; gap: 1.2rem; }
+  .aud-card .icon-box { margin-bottom: 0; color: var(--c); }
+  .aud-card h3 { font-family: var(--display); font-size: 1.35rem; color: var(--heading); margin: 0; }
+  .aud-card .btn-primary, .aud-card .btn-ghost { align-self: flex-start; margin-top: auto; }
+  .aud-note { font-family: var(--mono); font-size: 0.68rem; color: var(--muted-2); margin: 0; }
+
+  .source-grid.four { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 980px) { .source-grid.four { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .source-grid.four { grid-template-columns: 1fr; } }
+
+  .match-reasons { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0 0; }
+  .match-item { padding: 0.7rem 0; border-top: 1px solid #00d4aa33; }
+  .match-item .match-row { margin-bottom: 0.2rem; }
+  .match-reason { margin: 0; font-size: 0.82rem; color: var(--text); line-height: 1.45; }
+  .match-foot { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--muted-2); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    html { scroll-behavior: auto; }
+  }
 </style>
 </head>
 <body>
@@ -221,12 +322,12 @@
       Credential<span class="ai">ai</span>
     </a>
     <div class="nav-links">
-      <a href="#capabilities">Platform</a>
-      <a href="#how">Solutions</a>
-      <a href="#sources">Security</a>
+      <a href="#credentialing">Credentialing</a>
+      <a href="#matching">AI Matching</a>
+      <a href="#how">How it works</a>
     </div>
     <div class="nav-right">
-      <a class="nav-cta" href="#verify">Request Demo</a>
+      <a class="nav-cta" href="#verify">Try the live demo</a>
     </div>
   </div>
 </nav>
@@ -236,20 +337,30 @@
   <header class="hero">
     <div>
       <span class="live-badge"><span class="pulse"></span>BETA Version 1.0</span>
-      <h1>Physician verification in <span class="grad">hours.</span> Not weeks.</h1>
-      <p class="dek">Replace slow, error-prone manual credentialing with multi-agent AI. Credentialai runs parallel verification threads across primary sources to clear physicians 10x faster with 99.8% accuracy.</p>
+      <h1>Verify physicians, <span class="grad">Instant AI matching</span></h1>
+      <p class="dek">Credentialai checks a physician's identity, sanctions and license against primary sources, then matches cleared physicians to facilities that fit.</p>
+      <div class="hero-values">
+        <a class="hero-value t-cred" href="#credentialing">
+          <span class="hv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <span><b>Credentialing</b><span>One clear verdict, with the record behind it.</span></span>
+        </a>
+        <a class="hero-value t-match" href="#matching">
+          <span class="hv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.7 10.6 15.3 7.4M8.7 13.4l6.6 3.2"/></svg></span>
+          <span><b>AI matching</b><span>Cleared physicians matched to facilities that fit.</span></span>
+        </a>
+      </div>
       <div class="hero-stats">
         <div><div class="hs-num">24<span class="hs-unit">h</span></div><div class="hs-label">Avg Turnaround</div></div>
         <div class="hs-div"></div>
         <div><div class="hs-num">99.8<span class="hs-unit">%</span></div><div class="hs-label">Accuracy Rate</div></div>
         <div class="hs-div"></div>
-        <div><div class="hs-num">1</div><div class="hs-label">Free run / visitor</div></div>
+        <div><div class="hs-num">10<span class="hs-unit">x</span></div><div class="hs-label">Faster</div></div>
       </div>
     </div>
 
     <div class="panel-wrap" id="verify">
       <div class="panel">
-        <p class="panel-label">Run a real verification</p>
+        <p class="panel-label">Run a real verification and match</p>
         <form id="verifyForm">
           <div class="row2">
             <div class="field"><label for="fn">First name</label><input id="fn" required /></div>
@@ -282,7 +393,7 @@
             </div>
           </div>
           <button class="run" type="submit" id="runBtn">Run verification</button>
-          <p class="fine-note">One real verification per browser session. Uses live NPPES + HHS-OIG LEIE data; license status is a labeled demo dataset.</p>
+          <p class="fine-note">One real run per browser session. Identity and sanctions use live NPPES and HHS-OIG data. Facilities come from the public CMS hospital list. License status is labeled demo data.</p>
         </form>
         <div id="result"></div>
       </div>
@@ -291,88 +402,160 @@
  </div>
 </div>
 
-<section class="band" id="how">
+<section class="band values-band" id="platform">
   <div class="wrap">
-    <p class="band-label">How it works</p>
-    <h2 style="margin-left:auto;margin-right:auto;">Identity resolves first.<br><span style="color:#62748e;">Then everything else follows.</span></h2>
-    <p class="section-dek" style="margin-left:auto;margin-right:auto;">Manual credentialing is sequential. Credentialai deploys specialized agents that run concurrently across primary sources, assembling a complete, cited profile in minutes.</p>
+    <div class="center">
+      <p class="band-label">What it does</p>
+      <h2>Two jobs. <span class="soft">One run.</span></h2>
+      <p class="section-dek">Most tools stop at the background check. Credentialai clears the physician and finds the facilities that fit in the same pass.</p>
+    </div>
+    <div class="value-grid">
+      <article class="value-card t-cred" id="credentialing">
+        <div>
+          <span class="value-kicker">01 · Credentialing</span>
+          <h3>Know who is cleared to practice</h3>
+          <p>Three checks run against primary sources. You get one clear verdict, with the record behind every finding.</p>
+        </div>
+        <ul class="value-list">
+          <li>Identity confirmed in the NPPES registry</li>
+          <li>Sanctions checked against the HHS-OIG exclusion list</li>
+          <li>License status reviewed, with unclear cases sent to a person</li>
+        </ul>
+        <div class="mock" aria-hidden="true">
+          <div class="mock-head">
+            <div class="mock-person"><span class="avatar">AR</span><div><b>Dr. A. Rivera</b><small>Physician · Colorado</small></div></div>
+            <span class="chip">Sample</span>
+          </div>
+          <div class="mock-row"><div class="l"><b>Identity</b><small>NPPES NPI Registry</small></div><span class="chip ok">Match found</span></div>
+          <div class="mock-row"><div class="l"><b>Sanctions</b><small>HHS-OIG LEIE</small></div><span class="chip ok">No hits</span></div>
+          <div class="mock-row"><div class="l"><b>License</b><small>State board</small></div><span class="chip ok">Active</span></div>
+          <div class="mock-verdict"><b>GO</b><small>3 of 3 checks clear, each cited</small></div>
+        </div>
+      </article>
+
+      <article class="value-card t-match" id="matching">
+        <div>
+          <span class="value-kicker">02 · AI matching</span>
+          <h3>Match cleared physicians to the right facilities</h3>
+          <p>The moment a physician is cleared, Credentialai ranks real facilities in their state by fit, and shows why each one made the list.</p>
+        </div>
+        <ul class="value-list">
+          <li>Weighs location, profession, specialty and CMS rating</li>
+          <li>Only runs after a clean GO verdict</li>
+          <li>Draws on the public CMS list of U.S. hospitals</li>
+        </ul>
+        <div class="mock" aria-hidden="true">
+          <div class="mock-head">
+            <div class="mock-person"><span class="avatar">AR</span><div><b>Dr. A. Rivera</b><small>Internal Medicine · Colorado</small></div></div>
+            <span class="chip ok">GO</span>
+          </div>
+          <div class="mock-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+          <div class="mock-row"><div class="l"><b>1 · Northside Medical Center</b><small>Same city · General hospital</small></div><span class="chip fit">Rated 5 of 5</span></div>
+          <div class="mock-row"><div class="l"><b>2 · Lakeview Hospital</b><small>Same ZIP area · General hospital</small></div><span class="chip fit">Rated 4 of 5</span></div>
+          <div class="mock-row"><div class="l"><b>3 · Summit Regional</b><small>Same ZIP area · Emergency services</small></div><span class="chip fit">Rated 4 of 5</span></div>
+          <p class="mock-note">Sample screen · illustrative data</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="band alt" id="how">
+  <div class="wrap">
+    <div class="center">
+      <p class="band-label">How it works</p>
+      <h2>From a name to matched facilities <span class="soft">in four steps.</span></h2>
+      <p class="section-dek">Identity is confirmed first. Sanctions and license checks then run at the same time. Matching starts only after a clean verdict.</p>
+    </div>
+    <div class="phases" aria-hidden="true">
+      <div class="phase t-cred">Credentialing</div>
+      <div class="phase t-match">AI matching</div>
+    </div>
     <div class="steps">
-      <div class="step-card">
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg></div>
+      <div class="step-card t-cred">
+        <div class="step-tag">Credentialing</div>
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
         <div class="step-num">01</div>
-        <h3>Data Ingestion</h3>
-        <p>Upload a roster or sync via EHR API. Agents immediately parse identities and map required verification nodes.</p>
+        <h3>Enter the physician</h3>
+        <p>Name, state and profession. That is all it needs.</p>
       </div>
-      <div class="step-card">
+      <div class="step-card t-cred">
+        <div class="step-tag">Credentialing</div>
         <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M5 8v2a4 4 0 0 0 4 4h1"/><path d="M19 8v2a4 4 0 0 0-4 4h-1"/></svg></div>
         <div class="step-num">02</div>
-        <h3>Parallel sourcing</h3>
-        <p>Once identity is confirmed, sanctions and license-status checks run side by side against the HHS-OIG exclusion list and a state license dataset.</p>
+        <h3>Check the sources</h3>
+        <p>Identity first. Then sanctions and license, side by side.</p>
       </div>
-      <div class="step-card">
+      <div class="step-card t-cred">
+        <div class="step-tag">Credentialing</div>
         <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <div class="step-num">03</div>
-        <h3>Cited verdict</h3>
-        <p>Results are cross-referenced against confidence-tiering rules and returned as a cited GO / NEEDS REVIEW / NO-GO verdict — never a guess.</p>
+        <h3>Get a cited verdict</h3>
+        <p>GO, NEEDS REVIEW or NO-GO, with the record behind it.</p>
       </div>
-      <div class="step-card">
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"/><path d="M2 21h20"/><path d="M10 9h.01M14 9h.01M10 13h.01M14 13h.01M10 17h.01M14 17h.01"/></svg></div>
+      <div class="step-card t-match">
+        <div class="step-tag">AI matching</div>
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.7 10.6 15.3 7.4M8.7 13.4l6.6 3.2"/></svg></div>
         <div class="step-num">04</div>
-        <h3>Eligibility matching</h3>
-        <p>Once a clinician clears verification, the coordinator checks which of a hospital's own open roles they're now eligible for — matching against existing requisitions, not building a physician-side marketplace.</p>
+        <h3>See matching facilities</h3>
+        <p>A GO verdict returns a ranked list of facilities that fit.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="band" id="sources">
+<section class="band" id="why">
   <div class="wrap">
-    <p class="band-label">Data sources</p>
-    <h2>Two real government sources.<br><span style="color:#62748e;">One honestly labeled gap.</span></h2>
-    <p class="section-dek">We never present mocked data as verified. Every source below is labeled exactly as what it is.</p>
-    <div class="source-grid">
-      <div class="source-card"><div class="k">Identity</div><div class="v">NPPES NPI Registry</div><span class="tag real">Real, live, public</span></div>
-      <div class="source-card"><div class="k">Sanctions</div><div class="v">HHS-OIG LEIE</div><span class="tag real">Real, live, public</span></div>
-      <div class="source-card"><div class="k">License status</div><div class="v">State board lookup</div><span class="tag mock">Working on next version</span></div>
+    <p class="band-label">What changes</p>
+    <h2>Less waiting. <span class="soft">Fewer handoffs.</span></h2>
+    <p class="section-dek">Clearing a physician and placing them are usually two separate jobs. Here they are one.</p>
+    <div class="compare">
+      <div class="compare-card before">
+        <h3>Without Credentialai</h3>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Credentialing can take 90 to 120 days</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Staff look up each source by hand</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg><span>A cleared physician still waits for someone to find them a placement</span></li>
+        </ul>
+      </div>
+      <div class="compare-card with">
+        <h3>With Credentialai</h3>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><span>Checks run in parallel and return in under a minute</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><span>Every finding names the record it came from</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><span>Cleared physicians are matched to facilities right away</span></li>
+        </ul>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="band alt" id="capabilities">
+<section class="band alt" id="who">
   <div class="wrap">
-    <p class="band-label">System Capabilities</p>
-    <h2>Everything the architecture is built to do</h2>
-    <p class="section-dek">This live demo runs the identity, sanctions, and license-verdict path end to end. The capabilities below round out what the full multi-agent architecture is designed to support.</p>
-    <div class="cap-grid">
-      <div class="cap-card">
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/></svg></div>
-        <h3>Primary Source Verif.</h3>
-        <p>We never use secondary scraped data. Agents navigate directly to authoritative sources and pull raw verification records.</p>
+    <p class="band-label">Who it is for</p>
+    <h2>Built for both sides <span class="soft">of the hire.</span></h2>
+    <p class="section-dek">Hospitals see verified physicians who fit. Physicians see the facilities they are cleared to work with.</p>
+    <div class="aud-grid">
+      <div class="aud-card t-cred">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"/><path d="M2 21h20"/><path d="M10 9h.01M14 9h.01M10 13h.01M14 13h.01M10 17h.01M14 17h.01"/></svg></div>
+        <h3>For hospitals and health systems</h3>
+        <ul class="value-list">
+          <li>Clear physicians in one run, not one source at a time</li>
+          <li>See which verified physicians fit your facility</li>
+          <li>Keep a timestamped record of every check</li>
+        </ul>
+        <a class="btn-primary" href="#verify">Run a verification</a>
       </div>
-      <div class="cap-card">
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
-        <h3>Continuous Monitoring</h3>
-        <p>Licenses don't just expire on renewal day. The system is built to track expirations, sanctions, and status changes over time.</p>
-      </div>
-      <div class="cap-card">
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/><path d="M11 7h6a2 2 0 0 1 2 2v4M7 13v2a2 2 0 0 0 2 2h2"/></svg></div>
-        <h3>EHR Integrations</h3>
-        <p>Designed to push verified credential data directly into Epic, Cerner, or a custom medical staff office system.</p>
-      </div>
-      <div class="cap-card">
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5 2 6H4c.5-1 2-2 2-6"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></div>
-        <h3>Automated Alerts</h3>
-        <p>Built to notify a compliance team immediately if a physician receives a disciplinary action in any state.</p>
-      </div>
-      <div class="cap-card">
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h3"/></svg></div>
-        <h3>Compliance Reporting</h3>
-        <p>Generates committee-ready packets in one step, citing every source used to reach each verdict.</p>
-      </div>
-      <div class="cap-card">
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
-        <h3>Auditable By Design</h3>
-        <p>Every check is logged with timestamp and source — this live demo caps at one run per visitor purely to bound API cost.</p>
+      <div class="aud-card t-match">
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+        <h3>For physicians</h3>
+        <ul class="value-list">
+          <li>One check covers identity, sanctions and license</li>
+          <li>See facilities that fit your location and specialty</li>
+          <li>Every decision shows the records behind it</li>
+        </ul>
+        <a class="btn-ghost" href="contact.html">Get in touch</a>
+        <p class="aud-note">Physician profiles are not open yet.</p>
       </div>
     </div>
   </div>
@@ -381,11 +564,11 @@
 <section class="band">
   <div class="wrap">
     <div class="cta-card">
-      <h2>Ready to accelerate your credentialing?</h2>
-      <p>Run a real verification above, or explore how the multi-agent coordinator is designed.</p>
+      <h2>See credentialing and matching in one run.</h2>
+      <p>Enter a name and watch both happen live.</p>
       <div class="cta-buttons">
         <a class="btn-primary" href="#verify">Run a verification</a>
-        <a class="btn-ghost" href="#capabilities">View Documentation</a>
+        <a class="btn-ghost" href="#how">See how it works</a>
       </div>
     </div>
   </div>
@@ -399,15 +582,14 @@
           <span class="logo-mark"><span class="r1"></span><span class="r2"></span><span class="dot"></span></span>
           Credential<span class="ai">ai</span>
         </a>
-        <p>The multi-agent infrastructure for healthcare credentialing verification.</p>
+        <p>Physician credentialing and AI matching, in one platform.</p>
       </div>
       <div>
         <h4>Platform</h4>
         <ul>
-          <li><a href="#how">Architecture</a></li>
-          <li><a href="#capabilities">Agents</a></li>
-          <li><a href="#sources">Security &amp; Trust</a></li>
-          <li><a href="#" onclick="return false;">API Reference</a></li>
+          <li><a href="#credentialing">Credentialing</a></li>
+          <li><a href="#matching">AI matching</a></li>
+          <li><a href="#how">How it works</a></li>
         </ul>
       </div>
       <div>
@@ -446,6 +628,12 @@
     return 'error';
   }
 
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   function renderResult(html) {
     resultEl.innerHTML = html;
   }
@@ -459,7 +647,7 @@
 
     btn.disabled = true;
     btn.textContent = 'Initializing workflow…';
-    renderResult('<div class="verdict-box error"><span class="spinner"></span>Running identity, sanctions, and license checks — this can take 15-30 seconds.</div>');
+    renderResult('<div class="verdict-box error"><span class="spinner"></span>Checking identity, sanctions and license, then matching facilities. This can take up to a minute.</div>');
 
     fetch('/api/verify', {
       method: 'POST',
@@ -492,14 +680,22 @@
           }).join('') + '</div>';
         }
         var matchHtml = '';
-        var matches = r.data.requisition_matches;
+        var matches = r.data.facility_matches;
         if (matches && matches.length) {
-          matchHtml = '<div class="match-card"><div class="match-title">Eligible open role' + (matches.length > 1 ? 's' : '') + '</div>' +
-            matches.map(function (m) {
-              return '<div class="match-row"><span class="match-hospital">' + m.hospital + '</span><span class="match-role">' + m.specialty + ' · ' + m.state + '</span></div>';
-            }).join('') + '<span class="tag mock">Illustrative demo data</span></div>';
+          matchHtml = '<div class="match-card"><div class="match-title">Matched facilities</div>' +
+            matches.map(function (m, i) {
+              var meta = [m.city + ', ' + m.state, m.hospital_type].filter(Boolean).join(' · ');
+              var chips = (m.cms_rating ? '<span class="chip fit">CMS rating ' + esc(m.cms_rating) + ' of 5</span>' : '') +
+                (m.emergency_services ? '<span class="chip">Emergency services</span>' : '');
+              return '<div class="match-item"><div class="match-row"><span class="match-hospital">' + (i + 1) + ' · ' + esc(m.name) + '</span><span class="match-role">' + esc(meta) + '</span></div>' +
+                '<p class="match-reason">' + esc(m.reason) + '</p>' +
+                (chips ? '<div class="match-reasons">' + chips + '</div>' : '') + '</div>';
+            }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span>' +
+            '<p class="match-foot">Ranked for fit. This list does not show which facilities are hiring.</p></div>';
         } else if (matches && matches.length === 0) {
-          matchHtml = '<p class="match-empty">No open roles matched in this demo requisitions dataset for ' + state + '.</p>';
+          matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
+        } else if (cls === 'review' || cls === 'nogo') {
+          matchHtml = '<p class="match-empty">Facility matching runs only after a GO verdict.</p>';
         }
         renderResult('<div class="verdict-box ' + cls + '"><div class="verdict-title">' + title + '</div><div class="verdict-explain">' + explain + '</div>' + trace + '</div>' + matchHtml);
         btn.disabled = true; // one per session, enforced server-side too
