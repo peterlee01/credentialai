@@ -6,7 +6,7 @@ import anthropic
 
 from .tools_npi import get_npi_identity
 from .tools_sanctions import check_sanctions
-from .tools_license_mock import check_license_status
+from .tools_license import check_license_status
 from .tools_facilities import match_facilities, rank_facility_matches
 from .audit import log_verification
 
@@ -19,6 +19,8 @@ Sequencing (follow exactly):
 1. Always call get_npi_identity first, to confirm the clinician's identity and NPI.
 2. Only after you have the identity result, call check_sanctions and check_license_status \
 (you may call both in the same turn).
+When calling check_license_status, pass the clinician's first and last name, and the license \
+number from the identity result if it has one.
 3. After you have all three tool results, determine the verdict (rules below).
 4. Only if the verdict is GO, call match_facilities using the clinician's profession, state, and \
 the primary_taxonomy_desc, practice_city and practice_zip from the identity result. Do not call \
@@ -32,9 +34,9 @@ Do not skip steps or guess before calling the tools.
 
 Verdict rules (apply exactly, in this order):
 - NO-GO: if check_sanctions returns any hit (hit_count > 0), OR check_license_status status is \
-"expired".
+"expired" or "revoked".
 - NEEDS REVIEW: if get_npi_identity is ambiguous (match_count > 1 or match_count == 0), OR \
-check_license_status status is "pending" or "not_found".
+check_license_status status is "pending", "not_found", "ambiguous" or "unverified".
 - GO: only if identity is unambiguous (exactly one match), sanctions hit_count is 0, and license \
 status is "active".
 
@@ -42,10 +44,11 @@ Output format for the final message — follow this exactly, do not deviate:
 - Line 1: exactly one word-or-phrase, nothing else on that line: GO, NEEDS REVIEW, or NO-GO.
 - Line 2 onward: one plain paragraph (no markdown headers, no bullet lists, no bold) explaining \
 the decision, explicitly citing which tool result(s) drove it — e.g. "NPPES returned an \
-unambiguous match (NPI ...); OIG LEIE returned 0 hits; license status is active in Colorado per \
-the demo license dataset."
-- If the license tool result includes a "note" about being demo/illustrative data, repeat that \
-caveat in the paragraph — never present mocked license data as verified.
+unambiguous match (NPI ...); OIG LEIE returned 0 hits; Colorado DORA license records show license \
+PSY.0001234 as active."
+- If the license status is "unverified", say plainly that license status could not be checked \
+automatically for that state and needs a person to confirm it — never imply a license was verified \
+when it was not. If a license record shows discipline on record, mention it.
 - The paragraph should only explain the identity/sanctions/license decision. Do not mention \
 match_facilities, rank_facility_matches or any facility match in the paragraph text — that is surfaced \
 separately in the product UI, not in this prose.
