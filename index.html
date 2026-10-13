@@ -118,6 +118,7 @@
     border-radius: var(--radius); color: var(--heading); font-family: var(--sans); font-size: 0.92rem;
   }
   .field input:focus, .field select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .field-hint { margin: 0.35rem 0 0; font-size: 0.72rem; color: var(--muted-2); line-height: 1.35; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
   button.run {
     width: 100%; padding: 0.85rem; background: var(--gradient-accent); color: #04120d; border: none; border-radius: var(--radius);
@@ -368,7 +369,7 @@
           <div class="row2">
             <div class="field">
               <label for="state">State</label>
-              <select id="state" required>
+              <select id="state" required aria-describedby="stateHint">
                 <option value="Arizona">Arizona</option>
                 <option value="California">California</option>
                 <option value="Colorado" selected>Colorado</option>
@@ -380,6 +381,7 @@
                 <option value="Texas">Texas</option>
                 <option value="Virginia">Virginia</option>
               </select>
+              <p class="field-hint" id="stateHint">Live license checks: Colorado. Other states go to human review.</p>
             </div>
             <div class="field">
               <label for="profession">Profession</label>
