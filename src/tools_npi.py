@@ -10,22 +10,34 @@ from anthropic import beta_tool
 
 NPPES_ENDPOINT = "https://npiregistry.cms.hhs.gov/api/"
 
+# NPPES taxonomy code prefixes for each supported profession, so a name search
+# only counts records in the right field (a psychologist search ignores a
+# physical therapy assistant with the same name).
+_PROFESSION_TAXONOMY_PREFIXES = {
+    "psychologist": ("103T",),
+    "counselor": ("101Y",),
+    "social worker": ("1041",),
+    "physician": ("20",),  # Allopathic & Osteopathic Physicians
+}
+
 
 @beta_tool
-def get_npi_identity(first_name: str, last_name: str, state: str) -> str:
-    """Look up a clinician's NPI record by name and practice state via the NPPES registry.
+def get_npi_identity(first_name: str, last_name: str, state: str, profession: str) -> str:
+    """Look up a clinician's NPI record by name, practice state and profession via the NPPES registry.
 
     Args:
         first_name: Clinician's first name.
         last_name: Clinician's last name.
         state: Two-letter state code where the clinician practices.
+        profession: One of "psychologist", "counselor", "social worker", "physician".
     """
+    prefixes = _PROFESSION_TAXONOMY_PREFIXES.get(profession.strip().lower(), ())
     params = {
         "version": "2.1",
         "first_name": first_name,
         "last_name": last_name,
         "state": state,
-        "limit": 5,
+        "limit": 20,
     }
     resp = requests.get(NPPES_ENDPOINT, params=params, timeout=15)
     resp.raise_for_status()
@@ -36,7 +48,10 @@ def get_npi_identity(first_name: str, last_name: str, state: str) -> str:
     for r in results:
         basic = r.get("basic", {})
         taxonomies = r.get("taxonomies", [])
-        primary_taxonomy = next((t for t in taxonomies if t.get("primary")), taxonomies[0] if taxonomies else {})
+        fitting = [t for t in taxonomies if not prefixes or (t.get("code") or "").startswith(prefixes)]
+        if not fitting:
+            continue
+        primary_taxonomy = next((t for t in fitting if t.get("primary")), fitting[0])
         addresses = r.get("addresses", [])
         practice = next((a for a in addresses if a.get("address_purpose") == "LOCATION"), addresses[0] if addresses else {})
         matches.append({
@@ -54,7 +69,9 @@ def get_npi_identity(first_name: str, last_name: str, state: str) -> str:
 
     return json.dumps({
         "source": "NPPES NPI Registry (live, public)",
-        "match_count": data.get("result_count", 0),
-        "ambiguous": data.get("result_count", 0) > 1,
+        "profession": profession,
+        "match_count": len(matches),
+        "ambiguous": len(matches) > 1,
+        "name_matches_other_professions": len(results) - len(matches),
         "matches": matches,
     })
