@@ -306,6 +306,12 @@
   .match-reason { margin: 0; font-size: 0.82rem; color: var(--text); line-height: 1.45; }
   .match-jobs { display: inline-block; margin-top: 0.45rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; }
   .match-jobs:hover { text-decoration: underline; }
+  .match-hiring { margin: 0.45rem 0 0.2rem; font-size: 0.8rem; font-weight: 600; color: var(--accent); }
+  .match-hiring.none { font-weight: 400; color: var(--muted-2); }
+  .match-openings { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; }
+  .match-openings li { margin: 0.2rem 0; }
+  .match-openings a { color: var(--text); }
+  .match-openings span { color: var(--muted-2); font-size: 0.72rem; }
   .match-foot { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--muted-2); }
 
   @media (prefers-reduced-motion: reduce) {
@@ -634,6 +640,20 @@
     });
   }
 
+  function openingsHtml(m, jobsUrl) {
+    var o = m.openings;
+    var search = '<a class="match-jobs" href="' + esc(jobsUrl) + '" target="_blank" rel="noopener">Search open ' + esc(currentProfession()) + ' roles here ↗</a>';
+    if (!o) return search;
+    if (!o.count) return '<p class="match-hiring none">No open ' + esc(currentProfession()) + ' roles listed right now</p>';
+    return '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
+      o.listings.map(function (j) {
+        return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
+          (j.via ? ' <span>' + esc(j.via) + '</span>' : '') + '</li>';
+      }).join('') + '</ul>';
+  }
+
+  function currentProfession() { return document.getElementById('profession').value; }
+
   function renderResult(html) {
     resultEl.innerHTML = html;
   }
@@ -687,9 +707,12 @@
               return '<div class="match-item"><div class="match-row"><span class="match-hospital">' + (i + 1) + ' · ' + esc(m.name) + '</span><span class="match-role">' + esc(meta) + '</span></div>' +
                 '<p class="match-reason">' + esc(m.reason) + '</p>' +
                 (chips ? '<div class="match-reasons">' + chips + '</div>' : '') +
-                '<a class="match-jobs" href="' + esc(jobsUrl) + '" target="_blank" rel="noopener">Search open ' + esc(profession) + ' roles here ↗</a></div>';
+                openingsHtml(m, jobsUrl) + '</div>';
             }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span>' +
-            '<p class="match-foot">Match % reflects distance from the practice address, facility type and CMS rating. Job links search Indeed listings; openings aren\'t confirmed by Credentialai.</p></div>';
+            '<p class="match-foot">Match % reflects distance from the practice address, facility type and CMS rating. ' +
+            (matches.some(function (m) { return m.openings; })
+              ? 'Open roles come from Google Jobs listings that name the facility as employer; check each listing for details.'
+              : 'Job links search Indeed listings; openings aren\'t confirmed by Credentialai.') + '</p></div>';
         } else if (matches && matches.length === 0) {
           matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
         } else if (cls === 'review' || cls === 'nogo') {

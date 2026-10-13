@@ -24,6 +24,7 @@ from http.server import BaseHTTPRequestHandler  # noqa: E402
 
 from src.coordinator import run_verification  # noqa: E402
 from src.tools_facilities import build_facility_matches  # noqa: E402
+from src.tools_jobs import add_openings  # noqa: E402
 
 ALLOWED_STATES = {
     "Arizona", "California", "Colorado", "Florida", "Georgia",
@@ -89,6 +90,11 @@ class handler(BaseHTTPRequestHandler):
             facility_matches = build_facility_matches(tool_calls)
         except Exception:
             facility_matches = None
+
+        try:
+            facility_matches = add_openings(facility_matches, profession)
+        except Exception:
+            pass  # openings are a bonus; the matches still show without them
 
         _seen_ips.add(client_ip)
         self._send_json(
