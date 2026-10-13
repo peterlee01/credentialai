@@ -2,20 +2,20 @@
 
 An agentic credentialing verification assistant: a Claude-orchestrated coordinator that checks a
 clinician's identity (real NPPES NPI Registry), sanctions/exclusion status (real HHS-OIG LEIE),
-and license status (mocked — see caveat below), then synthesizes a cited GO / NEEDS REVIEW /
+and license status (real Colorado DORA license records), then synthesizes a cited GO / NEEDS REVIEW /
 NO-GO verdict.
 
 A portfolio project demonstrating real multi-agent orchestration — a coordinator directing
 identity, sanctions, and license sub-checks against real government data sources, with a cited,
 confidence-tiered, human-escalatable trust pattern driving every verdict.
 
-## Real vs. mocked data sources
+## Data sources
 
 | Source | Status |
 |---|---|
 | NPPES NPI Registry (identity) | **Real, live, public API** — no key required |
 | HHS-OIG LEIE (sanctions/exclusions) | **Real, live, public CSV** — downloaded and cached locally |
-| State license/board status | **Mocked.** No unified free public API exists across all 50 state boards. A small illustrative dataset (10 states × 4 professions) stands in so the pipeline can be exercised end-to-end. Every response from this tool is labeled as demo data — never treat it as verified current law. |
+| Colorado DORA license records (license status) | **Real, live, public API** ([data.colorado.gov `7s5z-vewr`](https://data.colorado.gov/resource/7s5z-vewr.json)) — no key required. Colorado only: no free public API covers all 50 state boards, so any other state returns `unverified` and the verdict is NEEDS REVIEW for a person to confirm. No license status is ever invented. |
 | CMS Hospital General Information (facility matching) | **Real, live, public API** — no key required. Facility records only; it does not say which facilities are hiring. |
 
 ## Setup
@@ -35,8 +35,8 @@ python main.py "Jane" "Doe" "Colorado" "psychologist"
 
 Try a real, findable name/state combination for a live NPPES/LEIE result, or an unmatched
 combination to see a NEEDS REVIEW / ambiguous-identity path. Supported `profession` values:
-`psychologist`, `counselor`, `"social worker"`, `physician` (the four covered by the mocked
-license dataset).
+`psychologist`, `counselor`, `"social worker"`, `physician`. License status is checked live only
+for Colorado.
 
 ## Architecture
 
@@ -48,7 +48,7 @@ single lookup — is the actual product). In short:
 Coordinator (Claude, via Tool Runner)
   -> get_npi_identity        (real: NPPES)
   -> check_sanctions         (real: HHS-OIG LEIE)      \  called after identity
-  -> check_license_status    (mocked, clearly labeled)  /  resolves, in parallel
+  -> check_license_status    (real: Colorado DORA)     /  resolves, in parallel
   -> [only if verdict is GO] match_facilities        (real: CMS hospital list)
   -> [only if verdict is GO] rank_facility_matches   (coordinator orders the shortlist, with reasons)
   -> synthesized verdict: GO / NEEDS REVIEW / NO-GO, cited
@@ -74,14 +74,15 @@ runs downstream of a clean verdict — credentialing first, matching second.
 Every verification is appended to `audit_log.jsonl` (gitignored) with the request, and the full
 verdict text.
 
-**All four verdict paths verified end-to-end against real NPPES/LEIE data** (not just designed —
-actually run and observed):
+**Verdict paths verified end-to-end against real NPPES/LEIE data** (run before license status
+was switched to live Colorado records — re-run these against the live license source):
 - `GO` — "Shoshana Aal, counselor, Colorado": a real, unambiguous single NPPES match (NPI
-  1093982704), 0 sanctions hits, active mocked license
+  1093982704), 0 sanctions hits
 - `NEEDS REVIEW` — "Jack Smith, social worker, California": real ambiguous NPPES match (5
   candidates, no clean profession match)
 - `NO-GO` via sanctions — "John Smith, social worker, California": 2 real HHS-OIG LEIE hits
-- `NO-GO` via expired license — "Sarah Johnson, social worker, Virginia": mocked expired status
+- `NO-GO` via expired or revoked license — a Colorado clinician whose DORA record is expired,
+  revoked or suspended
 
 ## Human review queue
 
