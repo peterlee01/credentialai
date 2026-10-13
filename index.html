@@ -139,8 +139,6 @@
   .verdict-box.review .verdict-title { color: var(--warn); }
   .verdict-box.nogo .verdict-title { color: var(--danger); }
   .verdict-explain { font-size: 0.9rem; color: var(--text); }
-  .tool-trace { margin-top: 0.8rem; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
-  .tool-trace div { margin-bottom: 0.25rem; }
   .spinner { display: inline-block; width: 0.85rem; height: 0.85rem; border: 2px solid var(--border-strong-2); border-top-color: var(--accent); border-radius: 50%; animation: spin2 0.7s linear infinite; margin-right: 0.5rem; vertical-align: -1px; }
   @keyframes spin2 { to { transform: rotate(360deg); } }
 
@@ -306,6 +304,8 @@
   .match-item { padding: 0.7rem 0; border-top: 1px solid #00d4aa33; }
   .match-item .match-row { margin-bottom: 0.2rem; }
   .match-reason { margin: 0; font-size: 0.82rem; color: var(--text); line-height: 1.45; }
+  .match-jobs { display: inline-block; margin-top: 0.45rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; }
+  .match-jobs:hover { text-decoration: underline; }
   .match-foot { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--muted-2); }
 
   @media (prefers-reduced-motion: reduce) {
@@ -673,31 +673,29 @@
         var lines = (r.data.verdict_text || '').trim().split('\n');
         var title = lines[0];
         var explain = lines.slice(1).join(' ').trim();
-        var trace = '';
-        if (r.data.tool_calls && r.data.tool_calls.length) {
-          trace = '<div class="tool-trace">' + r.data.tool_calls.map(function (t) {
-            return '<div>[tool call] ' + t.name + '(' + JSON.stringify(t.input) + ')</div>';
-          }).join('') + '</div>';
-        }
         var matchHtml = '';
         var matches = r.data.facility_matches;
         if (matches && matches.length) {
           matchHtml = '<div class="match-card"><div class="match-title">Matched facilities</div>' +
             matches.map(function (m, i) {
               var meta = [m.city + ', ' + m.state, m.hospital_type].filter(Boolean).join(' · ');
-              var chips = (m.cms_rating ? '<span class="chip fit">CMS rating ' + esc(m.cms_rating) + ' of 5</span>' : '') +
+              var jobsUrl = 'https://www.indeed.com/jobs?q=' + encodeURIComponent(profession + ' "' + m.name + '"') +
+                '&l=' + encodeURIComponent(m.city + ', ' + m.state);
+              var chips = (m.match_pct != null ? '<span class="chip ok">' + esc(m.match_pct) + '% match</span>' : '') +
+                (m.cms_rating ? '<span class="chip fit">CMS rating ' + esc(m.cms_rating) + ' of 5</span>' : '') +
                 (m.emergency_services ? '<span class="chip">Emergency services</span>' : '');
               return '<div class="match-item"><div class="match-row"><span class="match-hospital">' + (i + 1) + ' · ' + esc(m.name) + '</span><span class="match-role">' + esc(meta) + '</span></div>' +
                 '<p class="match-reason">' + esc(m.reason) + '</p>' +
-                (chips ? '<div class="match-reasons">' + chips + '</div>' : '') + '</div>';
+                (chips ? '<div class="match-reasons">' + chips + '</div>' : '') +
+                '<a class="match-jobs" href="' + esc(jobsUrl) + '" target="_blank" rel="noopener">Search open ' + esc(profession) + ' roles here ↗</a></div>';
             }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span>' +
-            '<p class="match-foot">Ranked for fit. This list does not show which facilities are hiring.</p></div>';
+            '<p class="match-foot">Match % reflects distance from the practice address, facility type and CMS rating. Job links search Indeed listings; openings aren\'t confirmed by Credentialai.</p></div>';
         } else if (matches && matches.length === 0) {
           matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
         } else if (cls === 'review' || cls === 'nogo') {
           matchHtml = '<p class="match-empty">Facility matching runs only after a GO verdict.</p>';
         }
-        renderResult('<div class="verdict-box ' + cls + '"><div class="verdict-title">' + title + '</div><div class="verdict-explain">' + explain + '</div>' + trace + '</div>' + matchHtml);
+        renderResult('<div class="verdict-box ' + cls + '"><div class="verdict-title">' + title + '</div><div class="verdict-explain">' + explain + '</div></div>' + matchHtml);
         btn.disabled = true; // one per session, enforced server-side too
       })
       .catch(function (err) {

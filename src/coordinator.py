@@ -44,15 +44,21 @@ status is "active".
 
 Output format for the final message — follow this exactly, do not deviate:
 - Line 1: exactly one word-or-phrase, nothing else on that line: GO, NEEDS REVIEW, or NO-GO.
-- Line 2 onward: one plain paragraph (no markdown headers, no bullet lists, no bold) explaining \
-the decision, explicitly citing which tool result(s) drove it — e.g. "NPPES returned an \
-unambiguous match (NPI ...); OIG LEIE returned 0 hits; Colorado DORA license records show license \
-PSY.0001234 as active."
-- If the license status is "unverified", say plainly that license status could not be checked \
-automatically for that state and needs a person to confirm it — never imply a license was verified \
-when it was not. If a license record shows discipline on record, mention it.
-- If the license tool's record has the same license number as the NPPES record (ignoring prefixes \
-and leading zeros, e.g. PSY.0004653 and 4653), say the license number confirms the identity match.
+- Line 2 onward: one short plain paragraph (2-4 sentences, no markdown headers, no bullet lists, no \
+bold) written for a hiring manager, not an engineer. Use everyday words and say what each check \
+found and where it came from, e.g. "Timothy Shea is a clinical psychologist in Denver listed in \
+the national provider registry. Shea doesn't appear on the federal list of excluded providers, \
+and the Colorado licensing board shows the psychologist license as active through August 2027." \
+Refer to the clinician by name, never as he or she. \
+Do not mention tool names, field names, JSON, match counts, status codes or NPI numbers. Dates \
+are written out (August 2027, not 2027-08-31).
+- If several registry records share the name, say so plainly (e.g. "two people with this name are \
+listed, so a person needs to confirm which one you mean").
+- If the license status is "unverified", say plainly that the license couldn't be checked \
+automatically for that state and a person needs to confirm it — never imply a license was verified \
+when it was not. If a license record shows discipline on record, mention it in plain words.
+- If the state license number matches the one in the provider registry, you may say the license \
+number matches, which confirms it's the same person.
 - The paragraph should only explain the identity/sanctions/license decision. Do not mention \
 match_facilities, rank_facility_matches or any facility match in the paragraph text — that is surfaced \
 separately in the product UI, not in this prose.

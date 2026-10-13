@@ -105,6 +105,12 @@ def _score(row: dict, profession: str, specialty: str, city: str, zip_code: str)
     return score, signals
 
 
+def _max_score(profession: str, specialty: str) -> float:
+    """Best score a facility could get for this clinician: closest location, best type fit,
+    emergency services when the specialty needs them, and a 5-star CMS rating."""
+    return 4 + 3 + (2 if "emergency" in specialty else 0) + 5 * 0.3
+
+
 def shortlist_facilities(profession: str, state: str, specialty: str = "",
                          practice_city: str = "", practice_zip: str = "") -> list:
     """Top facilities in the clinician's state, best fit first."""
@@ -119,6 +125,7 @@ def shortlist_facilities(profession: str, state: str, specialty: str = "",
         score, signals = _score(row, prof, spec, city, zip_code)
         scored.append((score, row.get("facility_name") or "", row, signals))
     scored.sort(key=lambda item: (-item[0], item[1]))
+    best = _max_score(prof, spec)
 
     return [
         {
@@ -129,9 +136,10 @@ def shortlist_facilities(profession: str, state: str, specialty: str = "",
             "hospital_type": row.get("hospital_type"),
             "emergency_services": row.get("emergency_services") == "Yes",
             "cms_rating": _rating(row),
+            "match_pct": min(100, round(100 * score / best)),
             "signals": signals,
         }
-        for _, _, row, signals in scored[:SHORTLIST_SIZE]
+        for score, _, row, signals in scored[:SHORTLIST_SIZE]
     ]
 
 
