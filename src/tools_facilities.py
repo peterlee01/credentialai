@@ -203,7 +203,8 @@ def hiring_candidates(profession: str, state: str, specialty: str = "", practice
             base = {k: hospital[k] for k in ("name", "city", "state", "hospital_type", "emergency_services", "cms_rating")}
         else:
             key = "emp-" + re.sub(r"\s+", "-", _employer_key(company))
-            base = {"name": _display_name(company), "city": (_job_city(job) or home.lower()).title(),
+            city = _job_city(job) or home.lower()
+            base = {"name": _display_name(company), "city": "Remote" if city in ("anywhere", "remote") else city.title(),
                     "state": state_code, "hospital_type": None, "emergency_services": False, "cms_rating": None}
         group = groups.setdefault(key, {"facility_id": key, **base, "listings": [], "_links": set()})
         if link not in group["_links"]:
