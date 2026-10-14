@@ -106,6 +106,8 @@ class handler(BaseHTTPRequestHandler):
         except Exception as exc:
             facility_matches = None
             openings_notes.append(f"matching crashed ({exc.__class__.__name__})")
+        for note in openings_notes:
+            print(f"[matching] {note}")  # visible in the deployment's logs
 
         try:
             summary = build_summary(first_name, last_name, state, profession, tool_calls)
@@ -118,8 +120,7 @@ class handler(BaseHTTPRequestHandler):
             "facility_matches": facility_matches,
         }
         if owner:
-            # The owner also sees what the job search found, to tune matching.
-            self._send_json(200, {**payload, "runs_left": None, "openings_debug": openings_notes})
+            self._send_json(200, {**payload, "runs_left": None})
             return
         runs_used += 1
         _seen_ips[client_ip] = runs_used
