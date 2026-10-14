@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <title>Credentialai — Physician Credentialing and AI Matching</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="description" content="Credentialai verifies a physician's identity, sanctions and license, then matches cleared physicians to facilities that fit. Try one live run." />
+<meta name="description" content="Credentialai verifies a physician's identity, sanctions and license, then matches cleared physicians to facilities that fit. Try a live run." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✅</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -674,7 +674,7 @@
         btn.textContent = 'Run verification';
         if (r.status === 429) {
           btn.disabled = true;
-          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve already used your one live verification this session. Please check back later.</div></div>');
+          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 live verifications for now. Please check back later.</div></div>');
           return;
         }
         if (r.status !== 200) {
@@ -710,7 +710,8 @@
           matchHtml = '<p class="match-empty">Facility matching runs only after a GO verdict.</p>';
         }
         renderResult('<div class="verdict-box ' + cls + '"><div class="verdict-title">' + title + '</div><div class="verdict-explain">' + explain + '</div></div>' + matchHtml);
-        btn.disabled = true; // one per session, enforced server-side too
+        // The server enforces the per-visitor limit; the button just mirrors it.
+        btn.disabled = r.data.runs_left === 0;
       })
       .catch(function (err) {
         btn.disabled = false;
