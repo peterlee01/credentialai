@@ -225,36 +225,16 @@ def _openings_for(facility: dict, jobs, profession: str):
     return {"source": "Google Jobs via SerpApi", "count": len(listings), "listings": listings[:MAX_LISTINGS]}
 
 
-def nearby_openings(jobs_by_city: list, shown_links: set, profession: str, limit: int = 5) -> list:
-    """Other open roles in the profession from the same searches: real listings with links,
-    not tied to a matched facility. Skips ones already shown under a facility and duplicates."""
-    seen, out = set(shown_links), []
-    for jobs in jobs_by_city:
-        for job in jobs or []:
-            link = _link(job)
-            key = ((job.get("title") or "").lower(), (job.get("company_name") or "").lower())
-            if not link or link in seen or key in seen or not _title_fits(job.get("title"), profession):
-                continue
-            seen.update({link, key})
-            out.append({"title": job.get("title"), "employer": job.get("company_name"),
-                        "location": job.get("location"), "link": link})
-            if len(out) >= limit:
-                return out
-    return out
-
-
 def add_openings(facility_matches, profession: str, notes: list = None):
-    """Attach open roles to each matched facility (one search per city, then a search aimed at
-    each facility still without one; matched by employer name or owning health system) and
-    collect other nearby roles in the profession.
-    Returns (facility_matches, nearby). Appends one plain line per city to `notes`."""
+    """Attach open roles to each matched facility: one search per city, then a search aimed at
+    each facility still without one; matched by employer name or owning health system.
+    Appends one plain line per search to `notes`."""
     notes = [] if notes is None else notes
     if not facility_matches:
-        return facility_matches, []
+        return facility_matches
     if not os.environ.get("SERPAPI_KEY"):
         notes.append("SERPAPI_KEY is not set")
-        return facility_matches, []
-    # Search the best match's city first so its roles lead the nearby list.
+        return facility_matches
     cities = list(dict.fromkeys((m["city"], m["state"]) for m in facility_matches))
     with ThreadPoolExecutor(max_workers=4) as pool:
         by_city = dict(zip(cities, pool.map(lambda c: city_listings(c[0], c[1], profession, notes), cities)))
@@ -274,5 +254,4 @@ def add_openings(facility_matches, profession: str, notes: list = None):
         if found and found["count"]:
             matched[i] = {**matched[i], "openings": found}
 
-    shown = {j["link"] for m in matched for j in ((m["openings"] or {}).get("listings") or [])}
-    return matched, nearby_openings([by_city[c] for c in cities], shown, profession)
+    return matched
