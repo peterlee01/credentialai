@@ -106,10 +106,11 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             facility_matches = None
 
+        openings_notes = []
         try:
-            facility_matches = add_openings(facility_matches, profession)
-        except Exception:
-            pass  # openings are a bonus; the matches still show without them
+            facility_matches = add_openings(facility_matches, profession, openings_notes)
+        except Exception as exc:
+            openings_notes.append(f"lookup crashed ({exc.__class__.__name__})")  # matches still show
 
         try:
             summary = build_summary(first_name, last_name, state, profession, tool_calls)
@@ -122,7 +123,8 @@ class handler(BaseHTTPRequestHandler):
             "facility_matches": facility_matches,
         }
         if owner:
-            self._send_json(200, {**payload, "runs_left": None})
+            # The owner also sees what the job search found, to tune matching.
+            self._send_json(200, {**payload, "runs_left": None, "openings_debug": openings_notes})
             return
         runs_used += 1
         _seen_ips[client_ip] = runs_used

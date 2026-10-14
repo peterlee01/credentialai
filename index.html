@@ -67,7 +67,7 @@
   .nav-links a { text-decoration: none; color: var(--text); opacity: .8; }
   .nav-links a:hover { opacity: 1; }
   .nav-right { display: flex; align-items: center; gap: 1.4rem; }
-  .nav-cta { padding: 0.55rem 1.1rem; background: var(--gradient-accent); color: #04120d; border-radius: var(--radius); text-decoration: none; font-size: 0.85rem; font-weight: 700; }
+  .nav-cta { padding: 0.55rem 1.1rem; background: var(--gradient-accent); color: #04120d; border-radius: 999px; text-decoration: none; font-size: 0.85rem; font-weight: 700; }
   @media (max-width: 760px) { .nav-links { display: none; } }
 
   /* ---------- Hero ---------- */
@@ -121,7 +121,7 @@
   .field-hint { margin: 0.35rem 0 0; font-size: 0.72rem; color: var(--muted-2); line-height: 1.35; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
   button.run {
-    width: 100%; padding: 0.85rem; background: var(--gradient-accent); color: #04120d; border: none; border-radius: var(--radius);
+    width: 100%; padding: 0.85rem; background: var(--gradient-accent); color: #04120d; border: none; border-radius: 999px;
     font-family: var(--sans); font-weight: 700; font-size: 0.94rem; cursor: pointer; margin-top: 0.5rem;
     box-shadow: var(--glow-btn);
   }
@@ -185,7 +185,7 @@
   .cta-card h2 { max-width: 26ch; margin: 0 auto 0.9rem; position: relative; }
   .cta-card p { color: var(--muted); max-width: 46ch; margin: 0 auto 2rem; position: relative; }
   .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; }
-  .btn-primary, .btn-ghost { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.8rem 1.5rem; border-radius: var(--radius); font-weight: 700; font-size: 0.92rem; text-decoration: none; }
+  .btn-primary, .btn-ghost { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.8rem 1.5rem; border-radius: 999px; font-weight: 700; font-size: 0.92rem; text-decoration: none; }
   .btn-primary { background: var(--gradient-accent); color: #04120d; box-shadow: var(--glow-btn); }
   .btn-ghost { border: 1px solid var(--border-strong-2); color: var(--heading); }
 
@@ -297,6 +297,9 @@
 
   /* Live result cards: the product sample cards (.mock) at a larger size */
   .result-card { margin-top: 1rem; }
+  .result-card.t-cred { border-color: var(--accent); }
+  .result-card.t-match { border-color: var(--match); }
+  .openings-debug { margin: 0.6rem 0 0; font-family: var(--mono); font-size: 0.72rem; color: var(--muted-2); line-height: 1.5; }
   .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
   .mock.lg { padding: 1.4rem; }
   .mock.lg .avatar { width: 3rem; height: 3rem; font-size: 1rem; }
@@ -756,7 +759,7 @@
         }).join('') : '';
         var clear = summary ? summary.checks_clear + ' of 3 checks clear, each cited' : '';
         var verifyCard = '<div class="mock lg result-card t-cred">' +
-          head(PREVIEW ? '<span class="chip">Sample</span>' : '<span class="chip ok">Live result</span>') +
+          head('') +
           checkRows +
           '<div class="mock-verdict ' + cls + '"><b>' + esc(title) + '</b><small>' + esc(clear) + '</small></div>' +
           (explain ? '<p class="mock-explain">' + esc(explain) + '</p>' : '') + '</div>';
@@ -772,7 +775,8 @@
               var pct = m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '';
               return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' +
                 openingsHtml(m) + '</div>' + pct + '</div>';
-            }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span></div>';
+            }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span>' +
+            (r.data.openings_debug ? '<p class="openings-debug">Job search (owner view): ' + r.data.openings_debug.map(esc).join(' · ') + '</p>' : '') + '</div>';
         } else if (matches && matches.length === 0) {
           matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
         } else if (cls === 'review' || cls === 'nogo') {
