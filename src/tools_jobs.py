@@ -32,7 +32,7 @@ _GENERIC_WORDS = {
 
 # A listing only counts if its title is a job in the clinician's profession.
 _PROFESSION_TITLE_PATTERNS = {
-    "psychologist": r"psychologist|\bpsy\.?d\b",
+    "psychologist": r"psychologist|\bpsy\.?d\b|psychology (post|fellow|resident|intern)",
     "counselor": r"counsel|therapist",
     "social worker": r"social work|\blcsw\b|\bmsw\b",
     "physician": r"physician|doctor|hospitalist|psychiatrist|surgeon|\bm\.?d\b|\bd\.?o\b",
@@ -70,7 +70,7 @@ def _same_employer(facility_name: str, company_name: str) -> bool:
 def _search(params: dict, label: str, notes: list):
     """One SerpApi Google Jobs request. Returns its listings, [] for no results, None on failure."""
     try:
-        resp = requests.get(SERPAPI_ENDPOINT, params=params, timeout=15)
+        resp = requests.get(SERPAPI_ENDPOINT, params=params, timeout=25)
         data = resp.json()
     except (requests.RequestException, ValueError) as exc:
         notes.append(f"{label}: request failed ({exc.__class__.__name__})")
@@ -132,39 +132,40 @@ def _employers(jobs) -> str:
 PARENT_SYSTEMS = [
     {   # Universal Health Services
         "employer": r"universal health services|\buhs\b",
-        "facilities": ("highlands behavioral health", "centennial peaks", "cedar springs"),
+        "facilities": r"highlands behavioral health|centennial peaks|cedar springs",
     },
-    {   # HCA HealthONE
+    {   # HCA HealthONE (CMS now lists these as "HCA HealthONE <name>")
         "employer": r"healthone|\bhca\b",
-        "facilities": ("presbyterian/st", "presbyterian st", "rose medical center", "swedish medical center",
-                       "sky ridge", "north suburban", "medical center of aurora"),
+        "facilities": r"healthone|presbyterian.st|rose medical|swedish medical|sky ridge|north suburban|"
+                      r"medical center of aurora",
     },
-    {   # AdventHealth
+    {   # AdventHealth (CMS: "AdventHealth <name>"; formerly "<name> Adventist Hospital")
         "employer": r"adventhealth|advent health",
-        "facilities": ("avista adventist", "castle rock adventist", "littleton adventist",
-                       "parker adventist", "porter adventist"),
+        "facilities": r"adventhealth|adventist",
     },
     {   # Intermountain Health
         "employer": r"intermountain",
-        "facilities": ("saint joseph hospital", "good samaritan", "lutheran", "platte valley"),
+        "facilities": r"intermountain|saint joseph hospital|good samaritan|lutheran|platte valley",
     },
     {   # CommonSpirit Health
         "employer": r"commonspirit|common spirit",
-        "facilities": ("penrose", "st francis", "st. francis", "st anthony", "st. anthony", "st mary corwin",
-                       "st. mary-corwin"),
+        "facilities": r"commonspirit|penrose|st\.? francis|st\.? anthony|st\.? mary.corwin",
     },
     {   # UCHealth
         "employer": r"uchealth|uc health|university of colorado health",
-        "facilities": ("university of colorado hospital", "poudre valley", "medical center of the rockies",
-                       "memorial hospital", "highlands ranch hospital", "longs peak", "broomfield hospital",
-                       "greeley hospital"),
+        "facilities": r"uchealth|university of colorado hospital|poudre valley|medical center of the rockies|"
+                      r"memorial hospital|highlands ranch hospital|longs peak|broomfield hospital|greeley hospital",
+    },
+    {   # State of Colorado runs the state mental health hospitals (Fort Logan, Pueblo)
+        "employer": r"state of colorado|colorado department of human services",
+        "facilities": r"colorado mental health (hospital|institute)",
     },
 ]
 
 
 def _parent_owns(facility_name: str, company_name: str) -> bool:
     facility, company = (facility_name or "").lower(), (company_name or "").lower()
-    return any(re.search(p["employer"], company) and any(f in facility for f in p["facilities"])
+    return any(re.search(p["employer"], company) and re.search(p["facilities"], facility)
                for p in PARENT_SYSTEMS)
 
 
@@ -201,9 +202,17 @@ def facility_listings(facility: dict, profession: str, notes: list = None):
                        "hl": "en", "gl": "us", "api_key": api_key}, label, notes)
     if jobs is None:
         return None
-    notes.append(f"{label}: {len(jobs)} listings from {_employers(jobs)}")
     _cache[key] = (time.time(), jobs)
     return jobs
+
+
+def _verdict(facility: dict, job: dict, profession: str) -> str:
+    """Why a listing from a facility search was or wasn't linked to the facility (owner note)."""
+    if not _is_facility_job(facility, job):
+        return "other employer"
+    if not _title_fits(job.get("title"), profession):
+        return f"not a {profession} title"
+    return "linked" if _link(job) else "no link"
 
 
 def _openings_for(facility: dict, jobs, profession: str):
@@ -257,6 +266,10 @@ def add_openings(facility_matches, profession: str, notes: list = None):
     with ThreadPoolExecutor(max_workers=5) as pool:
         targeted = list(pool.map(lambda i: facility_listings(matched[i], profession, notes), gaps))
     for i, jobs in zip(gaps, targeted):
+        if jobs is not None:
+            detail = "; ".join(f"{j.get('title')} ({j.get('company_name')}, {j.get('location')}): "
+                               f"{_verdict(matched[i], j, profession)}" for j in jobs[:6])
+            notes.append(f"{profession} at {matched[i]['name']}: {len(jobs)} listings - {detail or 'none'}")
         found = _openings_for(matched[i], jobs, profession)
         if found and found["count"]:
             matched[i] = {**matched[i], "openings": found}
