@@ -34,7 +34,10 @@
   .updated { font-size: 0.82rem; color: var(--muted-2); margin: 0 0 2.5rem; }
   h1 { font-family: var(--display); font-size: 2.1rem; font-weight: 700; color: var(--heading); margin: 0 0 0.5rem; }
   h2 { font-family: var(--display); font-size: 1.15rem; font-weight: 700; color: var(--heading); margin: 2.2rem 0 0.8rem; }
-  p, li { color: var(--text); font-size: 0.95rem; }
+  p, li { color: var(--text); font-size: 1rem; }
+  /* Text links: white, with a green underline that marks them as links. */
+  main a { color: #fff; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  main a:hover { color: var(--accent); }
   ul { padding-left: 1.2rem; margin: 0 0 1rem; }
   li { margin-bottom: 0.5rem; }
   .callout { background: var(--panel); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem 1.4rem; margin: 1.5rem 0; font-size: 0.9rem; color: var(--muted); }
