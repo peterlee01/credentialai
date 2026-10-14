@@ -21,7 +21,7 @@ import requests
 SERPAPI_ENDPOINT = "https://serpapi.com/search.json"
 CACHE_TTL_SECONDS = 24 * 60 * 60
 MAX_LISTINGS = 3
-PAGES = 2  # Google Jobs returns 10 listings per page
+PAGES = 1  # Google Jobs returns 10 listings per page; facility searches fill the gaps
 
 # Words too generic to tell two employers apart.
 _GENERIC_WORDS = {
@@ -184,6 +184,28 @@ def _is_facility_job(facility: dict, job: dict) -> bool:
             and _job_city(job) == (facility.get("city") or "").strip().lower())
 
 
+def facility_listings(facility: dict, profession: str, notes: list = None):
+    """Listings from a search aimed at one facility, for when the city-wide search found
+    none there. Cached per facility for a day. None if the lookup can't run."""
+    notes = [] if notes is None else notes
+    api_key = os.environ.get("SERPAPI_KEY")
+    if not api_key:
+        return None
+    name, city, state = facility["name"], facility["city"], facility["state"]
+    key = ("facility", name.lower(), city.lower(), state.lower(), profession.lower())
+    cached = _cache.get(key)
+    if cached and time.time() - cached[0] < CACHE_TTL_SECONDS:
+        return cached[1]
+    label = f"{profession} at {name}"
+    jobs, _ = _search({"engine": "google_jobs", "q": f"{profession} jobs at {name} {city}, {state}",
+                       "hl": "en", "gl": "us", "api_key": api_key}, label, notes)
+    if jobs is None:
+        return None
+    notes.append(f"{label}: {len(jobs)} listings from {_employers(jobs)}")
+    _cache[key] = (time.time(), jobs)
+    return jobs
+
+
 def _openings_for(facility: dict, jobs, profession: str):
     if jobs is None:
         return None
@@ -213,8 +235,9 @@ def nearby_openings(jobs_by_city: list, shown_links: set, profession: str, limit
 
 
 def add_openings(facility_matches, profession: str, notes: list = None):
-    """Attach open roles to each matched facility (one search per city, matched by employer name
-    or owning health system) and collect other nearby roles in the profession.
+    """Attach open roles to each matched facility (one search per city, then a search aimed at
+    each facility still without one; matched by employer name or owning health system) and
+    collect other nearby roles in the profession.
     Returns (facility_matches, nearby). Appends one plain line per city to `notes`."""
     notes = [] if notes is None else notes
     if not facility_matches:
@@ -228,5 +251,15 @@ def add_openings(facility_matches, profession: str, notes: list = None):
         by_city = dict(zip(cities, pool.map(lambda c: city_listings(c[0], c[1], profession, notes), cities)))
     matched = [{**m, "openings": _openings_for(m, by_city[(m["city"], m["state"])], profession)}
                for m in facility_matches]
+
+    # Facilities the city-wide search found nothing for get a search aimed at them.
+    gaps = [i for i, m in enumerate(matched) if m["openings"] is not None and not m["openings"]["count"]]
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        targeted = list(pool.map(lambda i: facility_listings(matched[i], profession, notes), gaps))
+    for i, jobs in zip(gaps, targeted):
+        found = _openings_for(matched[i], jobs, profession)
+        if found and found["count"]:
+            matched[i] = {**matched[i], "openings": found}
+
     shown = {j["link"] for m in matched for j in ((m["openings"] or {}).get("listings") or [])}
     return matched, nearby_openings([by_city[c] for c in cities], shown, profession)
