@@ -3,7 +3,7 @@
 Wraps src.coordinator.run_verification (the same code the CLI uses) with the
 HTTP contract the existing frontend (index.html) already expects: POST a
 {first_name, last_name, state, profession} JSON body, get back
-{verdict_text, tool_calls, facility_matches} on success, 429 once the visitor has used
+{verdict_text, summary, facility_matches} on success, 429 once the visitor has used
 all their free verifications, or {error} on a bad request or failure.
 """
 
@@ -26,6 +26,7 @@ from http.server import BaseHTTPRequestHandler  # noqa: E402
 from src.coordinator import run_verification  # noqa: E402
 from src.tools_facilities import build_facility_matches  # noqa: E402
 from src.tools_jobs import add_openings  # noqa: E402
+from src.summary import build_summary  # noqa: E402
 
 ALLOWED_STATES = {
     "Arizona", "California", "Colorado", "Florida", "Georgia",
@@ -110,9 +111,14 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             pass  # openings are a bonus; the matches still show without them
 
+        try:
+            summary = build_summary(first_name, last_name, state, profession, tool_calls)
+        except Exception:
+            summary = None  # the page falls back to the verdict text alone
+
         payload = {
             "verdict_text": verdict_text,
-            "tool_calls": tool_calls,
+            "summary": summary,
             "facility_matches": facility_matches,
         }
         if owner:

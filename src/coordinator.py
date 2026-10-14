@@ -2,6 +2,8 @@
 via the Claude API Tool Runner, then logs the outcome to the audit trail.
 """
 
+import json
+
 import anthropic
 
 from .tools_npi import get_npi_identity
@@ -67,6 +69,16 @@ follow-up question. One verdict line, one explanatory paragraph. That is the ent
 """
 
 
+def _parse_result(content):
+    """A tool result's JSON payload, or None if it isn't JSON."""
+    if isinstance(content, list):
+        content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+    try:
+        return json.loads(content) if isinstance(content, str) else None
+    except ValueError:
+        return None
+
+
 def run_verification(first_name: str, last_name: str, state: str, profession: str):
     request = {
         "first_name": first_name,
@@ -93,12 +105,25 @@ def run_verification(first_name: str, last_name: str, state: str, profession: st
     final_text = ""
     tool_calls = []
     for message in runner:
+        calls_by_id = {}
         for block in message.content:
             if block.type == "text":
                 final_text = block.text
             elif block.type == "tool_use":
                 print(f"  [tool call] {block.name}({block.input})")
-                tool_calls.append({"name": block.name, "input": block.input})
+                call = {"name": block.name, "input": block.input, "result": None}
+                tool_calls.append(call)
+                calls_by_id[block.id] = call
+        if calls_by_id:
+            # The runner caches this response, so reading it here doesn't run the tools twice.
+            try:
+                response = runner.generate_tool_call_response() or {}
+            except Exception:
+                response = {}  # results only feed the UI summary; the run itself is unaffected
+            for item in response.get("content", []):
+                call = calls_by_id.get(item.get("tool_use_id"))
+                if call is not None:
+                    call["result"] = _parse_result(item.get("content"))
 
     log_verification(request, final_text)
     return final_text, tool_calls
