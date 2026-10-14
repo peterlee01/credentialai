@@ -1,20 +1,26 @@
-"""Facility matching against the real, free, public CMS hospital dataset.
+"""Matching a cleared clinician to employers that are hiring for their profession.
 
-Once a clinician clears verification (GO), the coordinator shortlists real
-facilities in their state from CMS "Hospital General Information" and ranks
-them for fit. No API key required. See
+Once a clinician clears verification (GO), matching starts from real open
+roles (Google Jobs via SerpApi, see src/tools_jobs.py) near their practice
+address, groups them by employer and scores each employer for fit, so every
+match comes with job links. Hospitals are enriched from the free, public CMS
+"Hospital General Information" dataset (type, rating), which also tells us
+which hospitals to search directly. See
 https://data.cms.gov/provider-data/dataset/xubh-q36u
 
-This matches a cleared clinician to facilities that fit their location,
-profession and specialty. It does not know which facilities are hiring: CMS
-publishes facility records, not job openings.
+Without job data (no SERPAPI_KEY, or every search failed) matching falls back
+to the CMS hospital shortlist, which has no job links.
 """
 
 import functools
 import json
+import re
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from anthropic import beta_tool
+
+from .tools_jobs import city_listings, facility_listings, _is_facility_job, _job_city, _link, _title_fits
 
 CMS_ENDPOINT = "https://data.cms.gov/provider-data/api/1/datastore/query/xubh-q36u/0"
 CMS_SOURCE = "CMS Hospital General Information (live, public)"
@@ -143,10 +149,118 @@ def shortlist_facilities(profession: str, state: str, specialty: str = "",
     ]
 
 
+# Agencies that post roles at other organisations' sites; a match should be the employer itself.
+_STAFFING = r"staffing|locum|recruit|\bamn\b|\baya\b|sunbelt|healthstaff|travel (nurse|therap)|placement|" \
+    r"\btalent\b|search group|workforce"
+_BEHAVIORAL_EMPLOYER = r"behavior|mental|psych|counsel|therap|wellness|recovery|mind"
+_PHYSICIAN_EMPLOYER = r"medical|clinic|health|hospital|physician|medicine|care"
+HIRING_SHORTLIST = 8
+CITY_SEARCHES = 3
+FACILITY_SEARCHES = 3
+
+
+def _employer_key(name: str) -> str:
+    name = re.sub(r"\(.*?\)|\s+-\s+\d+$|,?\s+(llc|inc|pllc|pc|corp)\.?$", "", (name or "").lower())
+    return re.sub(r"[^a-z0-9]+", " ", name).strip()
+
+
+def _display_name(name: str) -> str:
+    return re.sub(r"\s+-\s+\d+$", "", (name or "").strip())
+
+
+def hiring_candidates(profession: str, state: str, specialty: str = "", practice_city: str = "",
+                      practice_zip: str = "", notes: list = None):
+    """Employers near the clinician with open roles in their profession, best fit first.
+
+    Each candidate has at least one real listing. Returns None when job data isn't available
+    (no SERPAPI_KEY, or every search failed). Appends plain lines about the searches to `notes`."""
+    notes = [] if notes is None else notes
+    prof = profession.strip().lower()
+    state_code = STATE_CODES.get(state.strip(), state.strip().upper())
+    hospitals = shortlist_facilities(profession, state, specialty, practice_city, practice_zip)
+    home = practice_city.strip().title() or (hospitals[0]["city"] if hospitals else "")
+
+    cities = list(dict.fromkeys([c for c in [home] + [h["city"] for h in hospitals] if c]))[:CITY_SEARCHES]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        by_city = list(pool.map(lambda c: city_listings(c, state_code, prof, notes), cities))
+    if all(r is None for r in by_city):
+        return None
+    jobs = [j for r in by_city for j in (r or [])]
+
+    # Search the best-fitting hospitals directly when the city searches found nothing there.
+    targets = [h for h in hospitals[:FACILITY_SEARCHES] if not any(_is_facility_job(h, j) for j in jobs)]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        jobs += [j for r in pool.map(lambda h: facility_listings(h, prof, notes), targets) for j in (r or [])]
+
+    groups = {}
+    for job in jobs:
+        link, company = _link(job), job.get("company_name") or ""
+        if not link or not company or not _title_fits(job.get("title"), prof) or re.search(_STAFFING, company.lower()):
+            continue
+        hospital = next((h for h in hospitals if _is_facility_job(h, job)), None)
+        if hospital:
+            key = "cms-" + str(hospital["facility_id"])
+            base = {k: hospital[k] for k in ("name", "city", "state", "hospital_type", "emergency_services", "cms_rating")}
+        else:
+            key = "emp-" + re.sub(r"\s+", "-", _employer_key(company))
+            base = {"name": _display_name(company), "city": (_job_city(job) or home.lower()).title(),
+                    "state": state_code, "hospital_type": None, "emergency_services": False, "cms_rating": None}
+        group = groups.setdefault(key, {"facility_id": key, **base, "listings": [], "_links": set()})
+        if link not in group["_links"]:
+            group["_links"].add(link)
+            group["listings"].append({"title": job.get("title"), "link": link})
+
+    behavioral = prof in BEHAVIORAL_PROFESSIONS
+    best = 4 + 3 + 1.5 + 1.5
+    candidates = []
+    for g in groups.values():
+        signals, score = [], 0.0
+        if g["city"].lower() == home.lower():
+            score += 4
+            signals.append("Same city as practice address")
+        else:
+            score += 2
+            signals.append(f"Near the practice address ({g['city']})")
+        hospital_type = (g["hospital_type"] or "").lower()
+        if behavioral and "psychiatric" in hospital_type:
+            score += 3
+            signals.append("Psychiatric hospital")
+        elif not behavioral and ("acute care" in hospital_type or "critical access" in hospital_type):
+            score += 3
+            signals.append("General hospital")
+        elif re.search(_BEHAVIORAL_EMPLOYER if behavioral else _PHYSICIAN_EMPLOYER, g["name"].lower()):
+            score += 2
+            signals.append("Setting suits the profession")
+        else:
+            score += 1
+        if g["cms_rating"]:
+            score += g["cms_rating"] * 0.3
+            signals.append(f"CMS overall rating {g['cms_rating']} of 5")
+        roles = len(g["listings"])
+        score += min(roles, 3) * 0.5
+        signals.append(f"{roles} open {prof} {'role' if roles == 1 else 'roles'}")
+        candidates.append({**{k: v for k, v in g.items() if k != "_links"},
+                           "match_pct": min(100, round(100 * score / best)), "signals": signals, "_score": score})
+
+    candidates.sort(key=lambda c: (-c["_score"], c["name"]))
+    for c in candidates:
+        c.pop("_score")
+        notes.append(f"{c['name']} ({c['city']}): {len(c['listings'])} open roles")
+    return candidates[:HIRING_SHORTLIST]
+
+
+def _candidates(match_input: dict, notes: list = None):
+    """Hiring employers, or the CMS hospital shortlist when there's no job data."""
+    hiring = hiring_candidates(**match_input, notes=notes)
+    if hiring:
+        return hiring, True
+    return shortlist_facilities(**match_input), False
+
+
 @beta_tool
 def match_facilities(profession: str, state: str, specialty: str = "",
                      practice_city: str = "", practice_zip: str = "") -> str:
-    """Shortlist real facilities that fit a cleared clinician.
+    """Shortlist employers near a cleared clinician that are hiring for their profession.
 
     Only call this after a clinician has already received a GO verdict.
 
@@ -157,18 +271,21 @@ def match_facilities(profession: str, state: str, specialty: str = "",
         practice_city: practice_city from the NPPES identity result, if available.
         practice_zip: practice_zip from the NPPES identity result, if available.
     """
-    candidates = shortlist_facilities(profession, state, specialty, practice_city, practice_zip)
+    candidates, hiring = _candidates({"profession": profession, "state": state, "specialty": specialty,
+                                      "practice_city": practice_city, "practice_zip": practice_zip})
     return json.dumps({
-        "source": CMS_SOURCE,
-        "note": "Facility records only. This dataset does not say which facilities are hiring.",
+        "source": "Google Jobs open roles; hospital details from " + CMS_SOURCE if hiring else CMS_SOURCE,
+        "note": ("Every candidate has open roles in this profession (titles listed)." if hiring else
+                 "No job data available: hospital records only, which do not say who is hiring."),
         "candidate_count": len(candidates),
-        "candidates": candidates,
+        "candidates": [{**{k: v for k, v in c.items() if k != "listings"},
+                        "open_role_titles": [l["title"] for l in c.get("listings", [])][:5]} for c in candidates],
     })
 
 
 @beta_tool
 def rank_facility_matches(ranked: list[dict]) -> str:
-    """Record the final best-fit order of facilities for a cleared clinician.
+    """Record the final best-fit order of matches for a cleared clinician.
 
     Call this once, after match_facilities, with up to 5 of its candidates.
 
@@ -180,18 +297,18 @@ def rank_facility_matches(ranked: list[dict]) -> str:
     return json.dumps({"recorded": len(ranked)})
 
 
-def build_facility_matches(tool_calls: list, limit: int = 5):
+def build_facility_matches(tool_calls: list, limit: int = 5, notes: list = None):
     """Turn the coordinator's tool calls into the list the product UI shows.
 
     Returns None when matching did not run (any verdict other than GO). Uses the
     coordinator's ranking and reasons when it supplied valid ones, and falls back
-    to the scored shortlist order otherwise, so a cleared clinician always gets a
-    list.
+    to the scored order otherwise. Searches are cached, so rebuilding the
+    candidates here doesn't repeat them.
     """
     match_call = next((t for t in tool_calls if t["name"] == "match_facilities"), None)
     if not match_call:
         return None
-    candidates = shortlist_facilities(**match_call["input"])
+    candidates, _ = _candidates(match_call["input"], notes)
     by_id = {c["facility_id"]: c for c in candidates}
 
     ordered = []
@@ -210,4 +327,7 @@ def build_facility_matches(tool_calls: list, limit: int = 5):
         if candidate["facility_id"] in by_id:
             ordered.append({**candidate, "reason": "; ".join(candidate["signals"]), "ranked_by": "score"})
 
+    for match in ordered:
+        listings = match.pop("listings", None)
+        match["openings"] = {"count": len(listings), "listings": listings[:3]} if listings else None
     return ordered[:limit]

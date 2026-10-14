@@ -31,9 +31,12 @@ the primary_taxonomy_desc, practice_city and practice_zip from the identity resu
 this tool for a NEEDS REVIEW or NO-GO verdict — matching only ever applies to a clinician who has \
 already cleared verification, never as an independent lookup.
 5. After match_facilities returns, call rank_facility_matches once with up to 5 of its candidates, \
-best fit first. Weigh closeness to the practice address, how well the facility type suits the \
-profession and specialty, and CMS rating. Give each a one-sentence reason under 15 words that \
-uses only facts from the match_facilities result. Never state or imply that a facility is hiring.
+best fit first. Candidates are employers with open roles in the clinician's profession (their \
+open_role_titles), hospitals and other employers alike. Weigh closeness to the practice address, \
+how well the setting and the open roles suit the profession and specialty, CMS rating when there \
+is one, and how many relevant roles are open. Give each a one-sentence reason under 15 words that \
+uses only facts from the match_facilities result. Only say an employer is hiring if its result \
+lists open roles.
 Do not skip steps or guess before calling the tools.
 
 Verdict rules (apply exactly, in this order):
