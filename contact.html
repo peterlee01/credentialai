@@ -38,9 +38,10 @@
   p { color: var(--text); margin: 0 0 1.3rem; max-width: 60ch; }
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; margin-top: 2rem; }
   .card h3 { font-family: var(--display); font-size: 1rem; color: var(--heading); margin: 0 0 0.6rem; }
-  .card a.mail { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--accent); font-weight: 600; text-decoration: none; font-size: 1.05rem; }
+  .card a.mail { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 1rem; color: #fff; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  .card a.mail:hover { color: var(--accent); }
   .card a.mail:hover { text-decoration: underline; }
-  .card p { font-size: 0.88rem; color: var(--muted); margin: 0.6rem 0 0; }
+  .card p { font-size: 1rem; color: var(--text); margin: 0.6rem 0 0; }
   footer.site-footer { border-top: 1px solid var(--border); padding: 2.5rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--muted-2); }
 </style>
 </head>
