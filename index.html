@@ -623,6 +623,31 @@
   var form = document.getElementById('verifyForm');
   var btn = document.getElementById('runBtn');
   var resultEl = document.getElementById('result');
+  var params = new URLSearchParams(window.location.search);
+  // ?preview shows a fixed sample result (no lookups, no cost, no limit) for design work.
+  var PREVIEW = params.has('preview');
+  // ?key=... is the owner pass: the server skips the per-visitor limit when it matches DEMO_BYPASS_KEY.
+  var OWNER_KEY = params.get('key') || '';
+
+  function sampleResult(first, last, state, profession) {
+    var name = (first || 'Timothy') + ' ' + (last || 'Shea');
+    var job = function (title, via) { return { title: title, link: 'https://www.google.com/search?q=' + encodeURIComponent(title), via: via }; };
+    return {
+      verdict_text: 'GO\nPreview with sample data. ' + name + ' is a clinical ' + profession + ' in Denver listed in the national provider registry. ' +
+        last + ' doesn\'t appear on the federal list of excluded providers, and the ' + state + ' licensing board shows the license as active through August 2027.',
+      runs_left: null,
+      facility_matches: [
+        { name: 'Sample Behavioral Health Hospital', city: 'Denver', state: 'CO', hospital_type: 'Psychiatric', match_pct: 82, cms_rating: null, emergency_services: false,
+          reason: 'Psychiatric facility in Denver, same city as practice address.',
+          openings: { count: 2, listings: [job('Clinical Psychologist', 'via Indeed'), job('Staff Psychologist, Inpatient', 'via LinkedIn')] } },
+        { name: 'Sample Medical Center', city: 'Denver', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 65, cms_rating: 5, emergency_services: true,
+          reason: 'Same city as practice; CMS overall rating 5 of 5.',
+          openings: { count: 1, listings: [job('Health Psychologist', 'via hospital careers site')] } },
+        { name: 'Sample Regional Hospital', city: 'Aurora', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 51, cms_rating: 4, emergency_services: true,
+          reason: 'Same ZIP area as practice; CMS overall rating 4 of 5.', openings: { count: 0, listings: [] } }
+      ]
+    };
+  }
 
   function verdictClass(text) {
     var first = (text || '').trim().split('\n')[0].trim().toUpperCase();
@@ -663,14 +688,21 @@
     btn.textContent = 'Initializing workflow…';
     renderResult('<div class="verdict-box error"><span class="spinner"></span>Checking identity, sanctions and license, then matching facilities. This can take up to a minute.</div>');
 
-    fetch('/api/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ first_name: first_name, last_name: last_name, state: state, profession: profession })
-    })
-      .then(function (res) {
-        return res.json().then(function (data) { return { status: res.status, data: data }; });
-      })
+    var headers = { 'Content-Type': 'application/json' };
+    if (OWNER_KEY) headers['X-Demo-Key'] = OWNER_KEY;
+    var request = PREVIEW
+      ? new Promise(function (resolve) {
+          setTimeout(function () { resolve({ status: 200, data: sampleResult(first_name, last_name, state, profession) }); }, 800);
+        })
+      : fetch('/api/verify', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({ first_name: first_name, last_name: last_name, state: state, profession: profession })
+        }).then(function (res) {
+          return res.json().then(function (data) { return { status: res.status, data: data }; });
+        });
+
+    request
       .then(function (r) {
         btn.textContent = 'Run verification';
         if (r.status === 429) {
