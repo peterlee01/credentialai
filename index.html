@@ -144,9 +144,10 @@
 
   .match-card { margin-top: 0.8rem; border-radius: var(--radius); padding: 1rem 1.1rem; background: var(--accent-dim); border: 1px solid var(--accent); }
   .match-card .match-title { font-family: var(--display); font-weight: 700; font-size: 1.2rem; color: var(--accent); margin-bottom: 0.6rem; }
-  .match-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.5rem; }
-  .match-row .match-hospital { font-weight: 700; font-family: var(--display); color: var(--heading); font-size: 0.9rem; }
-  .match-row .match-role { font-size: 0.8rem; color: var(--muted); text-align: right; }
+  .match-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .match-row .match-hospital { display: block; font-weight: 700; font-family: var(--display); color: var(--heading); font-size: 1.05rem; line-height: 1.3; }
+  .match-row .match-role { display: block; font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+  .match-row .match-pct { flex: none; }
   .match-empty { margin-top: 0.8rem; font-size: 0.85rem; color: var(--muted-2); }
 
   /* ---------- Sections ---------- */
@@ -692,10 +693,11 @@
           matchHtml = '<div class="match-card"><div class="match-title">Matched facilities</div>' +
             matches.map(function (m, i) {
               var meta = [m.city + ', ' + m.state, m.hospital_type].filter(Boolean).join(' · ');
-              var chips = (m.match_pct != null ? '<span class="chip ok">' + esc(m.match_pct) + '% match</span>' : '') +
-                (m.cms_rating ? '<span class="chip fit">CMS rating ' + esc(m.cms_rating) + ' of 5</span>' : '') +
+              var pct = m.match_pct != null ? '<span class="chip ok match-pct">' + esc(m.match_pct) + '% match</span>' : '';
+              var chips = (m.cms_rating ? '<span class="chip fit">CMS rating ' + esc(m.cms_rating) + ' of 5</span>' : '') +
                 (m.emergency_services ? '<span class="chip">Emergency services</span>' : '');
-              return '<div class="match-item"><div class="match-row"><span class="match-hospital">' + (i + 1) + ' · ' + esc(m.name) + '</span><span class="match-role">' + esc(meta) + '</span></div>' +
+              return '<div class="match-item"><div class="match-row"><div><span class="match-hospital">' + (i + 1) + ' · ' + esc(m.name) + '</span>' +
+                '<span class="match-role">' + esc(meta) + '</span></div>' + pct + '</div>' +
                 '<p class="match-reason">' + esc(m.reason) + '</p>' +
                 (chips ? '<div class="match-reasons">' + chips + '</div>' : '') +
                 openingsHtml(m) + '</div>';
