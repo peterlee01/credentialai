@@ -30,7 +30,28 @@ _GENERIC_WORDS = {
     "campus", "services", "behavioral", "community", "general", "memorial",
 }
 
+# A listing only counts if its title is a job in the clinician's profession.
+_PROFESSION_TITLE_PATTERNS = {
+    "psychologist": r"psychologist|\bpsy\.?d\b",
+    "counselor": r"counsel|therapist",
+    "social worker": r"social work|\blcsw\b|\bmsw\b",
+    "physician": r"physician|doctor|hospitalist|psychiatrist|surgeon|\bm\.?d\b|\bd\.?o\b",
+}
+
 _cache = {}
+
+
+# Support and non-clinical roles that mention a profession but aren't that job.
+_NOT_THE_ROLE = r"assistant|\btech(nician)?\b|\baide\b|coordinator|scheduler|receptionist|admissions|" \
+    r"financial|recruit|billing|sales|camp\b|career|student|volunteer"
+
+
+def _title_fits(title: str, profession: str) -> bool:
+    title = (title or "").lower()
+    pattern = _PROFESSION_TITLE_PATTERNS.get(profession.strip().lower())
+    if not title or re.search(_NOT_THE_ROLE, title):
+        return False
+    return pattern is None or re.search(pattern, title) is not None
 
 
 def _distinct_words(name: str) -> set:
@@ -94,17 +115,19 @@ def city_listings(city: str, state: str, profession: str):
     return jobs
 
 
-def _openings_for(facility: dict, jobs):
+def _openings_for(facility: dict, jobs, profession: str):
     if jobs is None:
         return None
     listings = []
     for job in jobs:
         if not _same_employer(facility["name"], job.get("company_name")):
             continue
+        if not _title_fits(job.get("title"), profession):
+            continue
         apply_links = job.get("apply_options") or []
         link = (apply_links[0].get("link") if apply_links else None) or job.get("share_link")
         if link:
-            listings.append({"title": job.get("title"), "link": link, "via": job.get("via")})
+            listings.append({"title": job.get("title"), "link": link})
     return {"source": "Google Jobs via SerpApi", "count": len(listings), "listings": listings[:MAX_LISTINGS]}
 
 
@@ -115,4 +138,4 @@ def add_openings(facility_matches, profession: str):
     cities = sorted({(m["city"], m["state"]) for m in facility_matches})
     with ThreadPoolExecutor(max_workers=4) as pool:
         by_city = dict(zip(cities, pool.map(lambda c: city_listings(c[0], c[1], profession), cities)))
-    return [{**m, "openings": _openings_for(m, by_city[(m["city"], m["state"])])} for m in facility_matches]
+    return [{**m, "openings": _openings_for(m, by_city[(m["city"], m["state"])], profession)} for m in facility_matches]
