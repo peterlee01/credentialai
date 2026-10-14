@@ -16,7 +16,8 @@ confidence-tiered, human-escalatable trust pattern driving every verdict.
 | NPPES NPI Registry (identity) | **Real, live, public API** — no key required |
 | HHS-OIG LEIE (sanctions/exclusions) | **Real, live, public CSV** — downloaded and cached locally |
 | Colorado DORA license records (license status) | **Real, live, public API** ([data.colorado.gov `7s5z-vewr`](https://data.colorado.gov/resource/7s5z-vewr.json)) — no key required. Colorado only: no free public API covers all 50 state boards, so any other state returns `unverified` and the verdict is NEEDS REVIEW for a person to confirm. No license status is ever invented. |
-| CMS Hospital General Information (facility matching) | **Real, live, public API** — no key required. Facility records only; it does not say which facilities are hiring. |
+| CMS Hospital General Information (hospital details) | **Real, live, public API** — no key required. Hospital type and rating for matched hospitals. |
+| Google Jobs via SerpApi (open roles) | **Real, live** — needs `SERPAPI_KEY` (free tier: 100 searches/month). Drives matching; every match has job links. |
 
 ## Setup
 
@@ -54,21 +55,29 @@ Coordinator (Claude, via Tool Runner)
   -> synthesized verdict: GO / NEEDS REVIEW / NO-GO, cited
 ```
 
-## Facility matching
+## Matching (employers that are hiring)
 
-Once a clinician clears verification (GO), the coordinator matches them to real
-facilities in their state. `match_facilities` pulls the state's hospitals from
-the public CMS "Hospital General Information" dataset and scores each one on
-closeness to the clinician's NPPES practice address (same city, then same ZIP
-area), how well the facility type suits the profession and specialty, and CMS
-overall rating. The coordinator then orders the shortlist and writes a
-one-sentence reason for each via `rank_facility_matches`. If it supplies no
-valid ranking, the scored order is used, so a cleared clinician always gets a
-list.
+Once a clinician clears verification (GO), the coordinator matches them to
+employers near their practice address that have open roles in their
+profession, so every match comes with job links. `match_facilities`:
 
-**This matches clinicians to facilities, not to job openings.** CMS publishes
-facility records, not vacancies, so nothing here says a facility is hiring.
-There is still no physician-side sign-up or marketplace. Matching only ever
+1. Runs Google Jobs searches through SerpApi (`SERPAPI_KEY`) for the profession
+   in the practice city and the cities of the best-fitting CMS hospitals, plus
+   searches aimed at those hospitals directly.
+2. Keeps listings whose title is in the profession (support roles such as
+   assistants and technicians are dropped) and drops staffing agencies.
+3. Groups listings by employer. A listing counts toward a CMS hospital when the
+   employer is that hospital, or its owning health system with the listing in
+   the hospital's city (Colorado systems for now).
+4. Scores each employer on closeness to the practice address, how well the
+   setting suits the profession, CMS rating for hospitals, and number of open
+   roles.
+
+The coordinator then orders the shortlist and writes a one-sentence reason for
+each via `rank_facility_matches`; if it supplies no valid ranking, the scored
+order is used. Without job data (no key, or every search failed) matching falls
+back to the CMS hospital shortlist, which has no job links. Searches are cached
+for a day per warm instance; a run uses roughly 3–6 searches. Matching only ever
 runs downstream of a clean verdict — credentialing first, matching second.
 
 Every verification is appended to `audit_log.jsonl` (gitignored) with the request, and the full

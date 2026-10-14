@@ -1,26 +1,24 @@
-"""Open-role lookup for matched facilities via SerpApi's Google Jobs search.
+"""Open-role searches via SerpApi's Google Jobs, plus the rules for reading them.
 
-Google Jobs aggregates listings from job boards and hospitals' own career
-sites. For each city with a matched facility this searches once for the
-clinician's profession in that city, then keeps, per facility, only listings
-whose employer name fits it, so "hiring" is only shown when a real listing
-names that employer.
+Google Jobs aggregates listings from job boards and employers' own career
+sites. city_listings searches a profession in a city; facility_listings
+searches a profession at one named facility. The helpers decide whether a
+listing is in the clinician's profession and which employer it belongs to.
+Matching (src/tools_facilities.py) builds the hiring employers from these.
 
-Needs SERPAPI_KEY in the environment. Without it (or if SerpApi fails), every
-lookup returns None and the site falls back to a plain job-search link.
-Results are cached per warm instance for a day to stay inside the free tier.
+Needs SERPAPI_KEY in the environment; without it (or if SerpApi fails) a
+search returns None. Results are cached per warm instance for a day to stay
+inside the free tier.
 """
 
 import os
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
 SERPAPI_ENDPOINT = "https://serpapi.com/search.json"
 CACHE_TTL_SECONDS = 24 * 60 * 60
-MAX_LISTINGS = 3
 PAGES = 1  # Google Jobs returns 10 listings per page; facility searches fill the gaps
 
 # Words too generic to tell two employers apart.
@@ -204,54 +202,3 @@ def facility_listings(facility: dict, profession: str, notes: list = None):
         return None
     _cache[key] = (time.time(), jobs)
     return jobs
-
-
-def _verdict(facility: dict, job: dict, profession: str) -> str:
-    """Why a listing from a facility search was or wasn't linked to the facility (owner note)."""
-    if not _is_facility_job(facility, job):
-        return "other employer"
-    if not _title_fits(job.get("title"), profession):
-        return f"not a {profession} title"
-    return "linked" if _link(job) else "no link"
-
-
-def _openings_for(facility: dict, jobs, profession: str):
-    if jobs is None:
-        return None
-    listings = []
-    for job in jobs:
-        if _is_facility_job(facility, job) and _title_fits(job.get("title"), profession) and _link(job):
-            listings.append({"title": job.get("title"), "link": _link(job)})
-    return {"source": "Google Jobs via SerpApi", "count": len(listings), "listings": listings[:MAX_LISTINGS]}
-
-
-def add_openings(facility_matches, profession: str, notes: list = None):
-    """Attach open roles to each matched facility: one search per city, then a search aimed at
-    each facility still without one; matched by employer name or owning health system.
-    Appends one plain line per search to `notes`."""
-    notes = [] if notes is None else notes
-    if not facility_matches:
-        return facility_matches
-    if not os.environ.get("SERPAPI_KEY"):
-        notes.append("SERPAPI_KEY is not set")
-        return facility_matches
-    cities = list(dict.fromkeys((m["city"], m["state"]) for m in facility_matches))
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        by_city = dict(zip(cities, pool.map(lambda c: city_listings(c[0], c[1], profession, notes), cities)))
-    matched = [{**m, "openings": _openings_for(m, by_city[(m["city"], m["state"])], profession)}
-               for m in facility_matches]
-
-    # Facilities the city-wide search found nothing for get a search aimed at them.
-    gaps = [i for i, m in enumerate(matched) if m["openings"] is not None and not m["openings"]["count"]]
-    with ThreadPoolExecutor(max_workers=5) as pool:
-        targeted = list(pool.map(lambda i: facility_listings(matched[i], profession, notes), gaps))
-    for i, jobs in zip(gaps, targeted):
-        if jobs is not None:
-            detail = "; ".join(f"{j.get('title')} ({j.get('company_name')}, {j.get('location')}): "
-                               f"{_verdict(matched[i], j, profession)}" for j in jobs[:6])
-            notes.append(f"{profession} at {matched[i]['name']}: {len(jobs)} listings - {detail or 'none'}")
-        found = _openings_for(matched[i], jobs, profession)
-        if found and found["count"]:
-            matched[i] = {**matched[i], "openings": found}
-
-    return matched

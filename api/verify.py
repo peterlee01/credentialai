@@ -25,7 +25,6 @@ from http.server import BaseHTTPRequestHandler  # noqa: E402
 
 from src.coordinator import run_verification  # noqa: E402
 from src.tools_facilities import build_facility_matches  # noqa: E402
-from src.tools_jobs import add_openings  # noqa: E402
 from src.summary import build_summary  # noqa: E402
 
 ALLOWED_STATES = {
@@ -101,16 +100,12 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(500, {"error": "Something went wrong running verification."})
             return
 
-        try:
-            facility_matches = build_facility_matches(tool_calls)
-        except Exception:
-            facility_matches = None
-
         openings_notes = []
         try:
-            facility_matches = add_openings(facility_matches, profession, openings_notes)
+            facility_matches = build_facility_matches(tool_calls, notes=openings_notes)
         except Exception as exc:
-            openings_notes.append(f"lookup crashed ({exc.__class__.__name__})")  # matches still show
+            facility_matches = None
+            openings_notes.append(f"matching crashed ({exc.__class__.__name__})")
 
         try:
             summary = build_summary(first_name, last_name, state, profession, tool_calls)

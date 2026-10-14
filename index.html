@@ -323,7 +323,6 @@
   .result-card .tag { margin-top: 0.4rem; }
   .match-hiring { margin: 0.6rem 0 0.25rem; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
   .match-openings { list-style: none; margin: 0; padding: 0; font-size: 1.08rem; font-weight: 600; line-height: 1.35; }
-  .match-hiring.none { font-weight: 400; color: var(--muted-2); }
   .match-openings li { margin: 0.4rem 0; }
   .match-openings a { color: var(--text); }
 
@@ -682,7 +681,7 @@
           reason: 'Same city as practice; CMS overall rating 5 of 5.',
           openings: { count: 1, listings: [job('Health Psychologist')] } },
         { name: 'Sample Regional Hospital', city: 'Aurora', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 51, cms_rating: 4, emergency_services: true,
-          reason: 'Same ZIP area as practice; CMS overall rating 4 of 5.', openings: { count: 0, listings: [] } }
+          reason: 'Same ZIP area as practice; CMS overall rating 4 of 5.', openings: { count: 1, listings: [job('Psychologist, Outpatient')] } }
       ]
     };
   }
@@ -703,16 +702,13 @@
 
   function openingsHtml(m) {
     var o = m.openings;
-    if (!o) return '';
-    if (!o.count) return '<p class="match-hiring none">No open ' + esc(currentProfession()) + ' roles listed right now</p>';
+    if (!o || !o.count) return '';
     return '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
       o.listings.map(function (j) {
         return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
 '</li>';
       }).join('') + '</ul>';
   }
-
-  function currentProfession() { return document.getElementById('profession').value; }
 
   function renderResult(html) {
     resultEl.innerHTML = html;
@@ -794,7 +790,7 @@
               return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' +
                 openingsHtml(m) + '</div>' + pct + '</div>';
             }).join('') +
-            '<span class="tag real">CMS hospital data · real, live, public</span>' +
+            '<span class="tag real">Open roles from Google Jobs · hospital details from CMS</span>' +
             (r.data.openings_debug ? '<p class="openings-debug">Job search (owner view): ' + r.data.openings_debug.map(esc).join(' · ') + '</p>' : '') + '</div>';
         } else if (matches && matches.length === 0) {
           matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
