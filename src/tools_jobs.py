@@ -124,32 +124,109 @@ def _employers(jobs) -> str:
     return ", ".join(sorted({j.get("company_name") or "?" for j in jobs})) or "no employers"
 
 
+# Health systems that post jobs under the parent company's name rather than the
+# hospital's. A parent's listing is only credited to a hospital it owns AND only when
+# the listing is in that hospital's city, so it can't be pinned on the wrong site.
+# Colorado for now (where license checks are live); facility patterns are matched
+# against CMS facility names, lowercased.
+PARENT_SYSTEMS = [
+    {   # Universal Health Services
+        "employer": r"universal health services|\buhs\b",
+        "facilities": ("highlands behavioral health", "centennial peaks", "cedar springs"),
+    },
+    {   # HCA HealthONE
+        "employer": r"healthone|\bhca\b",
+        "facilities": ("presbyterian/st", "presbyterian st", "rose medical center", "swedish medical center",
+                       "sky ridge", "north suburban", "medical center of aurora"),
+    },
+    {   # AdventHealth
+        "employer": r"adventhealth|advent health",
+        "facilities": ("avista adventist", "castle rock adventist", "littleton adventist",
+                       "parker adventist", "porter adventist"),
+    },
+    {   # Intermountain Health
+        "employer": r"intermountain",
+        "facilities": ("saint joseph hospital", "good samaritan", "lutheran", "platte valley"),
+    },
+    {   # CommonSpirit Health
+        "employer": r"commonspirit|common spirit",
+        "facilities": ("penrose", "st francis", "st. francis", "st anthony", "st. anthony", "st mary corwin",
+                       "st. mary-corwin"),
+    },
+    {   # UCHealth
+        "employer": r"uchealth|uc health|university of colorado health",
+        "facilities": ("university of colorado hospital", "poudre valley", "medical center of the rockies",
+                       "memorial hospital", "highlands ranch hospital", "longs peak", "broomfield hospital",
+                       "greeley hospital"),
+    },
+]
+
+
+def _parent_owns(facility_name: str, company_name: str) -> bool:
+    facility, company = (facility_name or "").lower(), (company_name or "").lower()
+    return any(re.search(p["employer"], company) and any(f in facility for f in p["facilities"])
+               for p in PARENT_SYSTEMS)
+
+
+def _job_city(job: dict) -> str:
+    return (job.get("location") or "").split(",")[0].strip().lower()
+
+
+def _link(job: dict):
+    apply_links = job.get("apply_options") or []
+    return (apply_links[0].get("link") if apply_links else None) or job.get("share_link")
+
+
+def _is_facility_job(facility: dict, job: dict) -> bool:
+    if _same_employer(facility["name"], job.get("company_name")):
+        return True
+    return (_parent_owns(facility["name"], job.get("company_name"))
+            and _job_city(job) == (facility.get("city") or "").strip().lower())
+
+
 def _openings_for(facility: dict, jobs, profession: str):
     if jobs is None:
         return None
     listings = []
     for job in jobs:
-        if not _same_employer(facility["name"], job.get("company_name")):
-            continue
-        if not _title_fits(job.get("title"), profession):
-            continue
-        apply_links = job.get("apply_options") or []
-        link = (apply_links[0].get("link") if apply_links else None) or job.get("share_link")
-        if link:
-            listings.append({"title": job.get("title"), "link": link})
+        if _is_facility_job(facility, job) and _title_fits(job.get("title"), profession) and _link(job):
+            listings.append({"title": job.get("title"), "link": _link(job)})
     return {"source": "Google Jobs via SerpApi", "count": len(listings), "listings": listings[:MAX_LISTINGS]}
 
 
+def nearby_openings(jobs_by_city: list, shown_links: set, profession: str, limit: int = 5) -> list:
+    """Other open roles in the profession from the same searches: real listings with links,
+    not tied to a matched facility. Skips ones already shown under a facility and duplicates."""
+    seen, out = set(shown_links), []
+    for jobs in jobs_by_city:
+        for job in jobs or []:
+            link = _link(job)
+            key = ((job.get("title") or "").lower(), (job.get("company_name") or "").lower())
+            if not link or link in seen or key in seen or not _title_fits(job.get("title"), profession):
+                continue
+            seen.update({link, key})
+            out.append({"title": job.get("title"), "employer": job.get("company_name"),
+                        "location": job.get("location"), "link": link})
+            if len(out) >= limit:
+                return out
+    return out
+
+
 def add_openings(facility_matches, profession: str, notes: list = None):
-    """Attach open roles to each matched facility: one search per city, matched by employer name.
-    Appends one plain line per city to `notes` describing what the search found."""
+    """Attach open roles to each matched facility (one search per city, matched by employer name
+    or owning health system) and collect other nearby roles in the profession.
+    Returns (facility_matches, nearby). Appends one plain line per city to `notes`."""
     notes = [] if notes is None else notes
     if not facility_matches:
-        return facility_matches
+        return facility_matches, []
     if not os.environ.get("SERPAPI_KEY"):
         notes.append("SERPAPI_KEY is not set")
-        return facility_matches
-    cities = sorted({(m["city"], m["state"]) for m in facility_matches})
+        return facility_matches, []
+    # Search the best match's city first so its roles lead the nearby list.
+    cities = list(dict.fromkeys((m["city"], m["state"]) for m in facility_matches))
     with ThreadPoolExecutor(max_workers=4) as pool:
         by_city = dict(zip(cities, pool.map(lambda c: city_listings(c[0], c[1], profession, notes), cities)))
-    return [{**m, "openings": _openings_for(m, by_city[(m["city"], m["state"])], profession)} for m in facility_matches]
+    matched = [{**m, "openings": _openings_for(m, by_city[(m["city"], m["state"])], profession)}
+               for m in facility_matches]
+    shown = {j["link"] for m in matched for j in ((m["openings"] or {}).get("listings") or [])}
+    return matched, nearby_openings([by_city[c] for c in cities], shown, profession)
