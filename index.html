@@ -74,6 +74,7 @@
   .hero-wrap {
     position: relative;
     overflow: hidden;
+    overflow: clip; /* clips like hidden, but lets the hero's left column stay pinned while scrolling */
     background-image: url('/hero.jpeg');
     background-size: cover;
     background-position: center 30%;
@@ -88,7 +89,9 @@
     pointer-events: none;
   }
   .hero { position: relative; padding: 4.5rem 0 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; align-items: start; }
-  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding: 3rem 0; } }
+  /* The left column stays pinned under the nav while a long result scrolls past on the right. */
+  .hero > :first-child { position: sticky; top: 6.5rem; }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding: 3rem 0; } .hero > :first-child { position: static; } }
   .live-badge { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em; color: var(--accent); background: var(--accent-dim); border: 1px solid #00d4aa33; padding: 0.4rem 0.85rem; border-radius: 999px; margin-bottom: 1.8rem; }
   .live-badge .pulse { position: relative; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); }
   .live-badge .pulse::before { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: var(--accent); opacity: .6; animation: ping 1.8s cubic-bezier(0,0,0.2,1) infinite; }
