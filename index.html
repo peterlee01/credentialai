@@ -304,13 +304,10 @@
   .match-reasons { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0 0; }
   .match-item { padding: 0.7rem 0; border-top: 1px solid #00d4aa33; }
   .match-item .match-row { margin-bottom: 0.2rem; }
-  .match-reason { margin: 0; font-size: 0.82rem; color: var(--text); line-height: 1.45; }
   .match-hiring { margin: 0.5rem 0 0.25rem; font-size: 0.85rem; font-weight: 600; color: var(--accent); }
-  .match-openings { list-style: none; margin: 0; padding: 0; font-size: 0.95rem; font-weight: 600; }
-  .match-openings li { margin: 0.3rem 0; }
+  .match-openings { list-style: none; margin: 0; padding: 0; font-size: 1.15rem; font-weight: 600; line-height: 1.35; }
+  .match-openings li { margin: 0.4rem 0; }
   .match-openings a { color: var(--text); }
-  .match-openings span { color: var(--muted-2); font-size: 0.75rem; font-weight: 400; }
-  .match-foot { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--muted-2); }
 
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
@@ -631,7 +628,7 @@
 
   function sampleResult(first, last, state, profession) {
     var name = (first || 'Timothy') + ' ' + (last || 'Shea');
-    var job = function (title, via) { return { title: title, link: 'https://www.google.com/search?q=' + encodeURIComponent(title), via: via }; };
+    var job = function (title) { return { title: title, link: 'https://www.google.com/search?q=' + encodeURIComponent(title) }; };
     return {
       verdict_text: 'GO\nPreview with sample data. ' + name + ' is a clinical ' + profession + ' in Denver listed in the national provider registry. ' +
         last + ' doesn\'t appear on the federal list of excluded providers, and the ' + state + ' licensing board shows the license as active through August 2027.',
@@ -639,10 +636,10 @@
       facility_matches: [
         { name: 'Sample Behavioral Health Hospital', city: 'Denver', state: 'CO', hospital_type: 'Psychiatric', match_pct: 82, cms_rating: null, emergency_services: false,
           reason: 'Psychiatric facility in Denver, same city as practice address.',
-          openings: { count: 2, listings: [job('Clinical Psychologist', 'via Indeed'), job('Staff Psychologist, Inpatient', 'via LinkedIn')] } },
+          openings: { count: 2, listings: [job('Clinical Psychologist'), job('Staff Psychologist, Inpatient')] } },
         { name: 'Sample Medical Center', city: 'Denver', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 65, cms_rating: 5, emergency_services: true,
           reason: 'Same city as practice; CMS overall rating 5 of 5.',
-          openings: { count: 1, listings: [job('Health Psychologist', 'via hospital careers site')] } },
+          openings: { count: 1, listings: [job('Health Psychologist')] } },
         { name: 'Sample Regional Hospital', city: 'Aurora', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 51, cms_rating: 4, emergency_services: true,
           reason: 'Same ZIP area as practice; CMS overall rating 4 of 5.', openings: { count: 0, listings: [] } }
       ]
@@ -669,7 +666,7 @@
     return '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
       o.listings.map(function (j) {
         return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
-          (j.via ? ' <span>' + esc(j.via) + '</span>' : '') + '</li>';
+'</li>';
       }).join('') + '</ul>';
   }
 
@@ -725,19 +722,14 @@
           matchHtml = '<div class="match-card"><div class="match-title">Matched facilities</div>' +
             matches.map(function (m, i) {
               var meta = [m.city + ', ' + m.state, m.hospital_type].filter(Boolean).join(' · ');
-              var pct = m.match_pct != null ? '<span class="chip ok match-pct">' + esc(m.match_pct) + '% match</span>' : '';
+              var pct = m.match_pct != null ? '<span class="chip fit match-pct">' + esc(m.match_pct) + '% match</span>' : '';
               var chips = (m.cms_rating ? '<span class="chip fit">CMS rating ' + esc(m.cms_rating) + ' of 5</span>' : '') +
                 (m.emergency_services ? '<span class="chip">Emergency services</span>' : '');
               return '<div class="match-item"><div class="match-row"><div><span class="match-hospital">' + (i + 1) + ' · ' + esc(m.name) + '</span>' +
                 '<span class="match-role">' + esc(meta) + '</span></div>' + pct + '</div>' +
-                '<p class="match-reason">' + esc(m.reason) + '</p>' +
                 (chips ? '<div class="match-reasons">' + chips + '</div>' : '') +
                 openingsHtml(m) + '</div>';
-            }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span>' +
-            '<p class="match-foot">Match % reflects distance from the practice address, facility type and CMS rating. ' +
-            (matches.some(function (m) { return m.openings && m.openings.count; })
-              ? 'Open roles come from Google Jobs listings that name the facility as employer; check each listing for details.'
-              : '') + '</p></div>';
+            }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span></div>';
         } else if (matches && matches.length === 0) {
           matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
         } else if (cls === 'review' || cls === 'nogo') {
