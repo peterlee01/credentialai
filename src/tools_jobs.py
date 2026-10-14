@@ -67,32 +67,37 @@ def _same_employer(facility_name: str, company_name: str) -> bool:
     return company <= facility or len(facility & company) >= 2
 
 
-def _search(params: dict, label: str):
+def _search(params: dict, label: str, notes: list):
     """One SerpApi Google Jobs request. Returns its listings, [] for no results, None on failure."""
     try:
         resp = requests.get(SERPAPI_ENDPOINT, params=params, timeout=15)
         data = resp.json()
     except (requests.RequestException, ValueError) as exc:
+        notes.append(f"{label}: request failed ({exc.__class__.__name__})")
         print(f"[openings] SerpApi request failed for {label}: {exc!r}")
         return None, None
     if resp.status_code != 200 or ("error" in data and "jobs_results" not in data):
         # SerpApi reports "no results" as an error message; anything else means the lookup failed.
         if "hasn't returned any results" in str(data.get("error", "")):
             return [], None
+        notes.append(f"{label}: SerpApi error {resp.status_code} - {data.get('error')}")
         print(f"[openings] SerpApi error for {label}: HTTP {resp.status_code} {data.get('error')}")
         return None, None
     return data.get("jobs_results", []), (data.get("serpapi_pagination") or {}).get("next_page_token")
 
 
-def city_listings(city: str, state: str, profession: str):
+def city_listings(city: str, state: str, profession: str, notes: list = None):
     """Open roles for a profession in one city (up to PAGES pages), or None if the lookup can't run."""
+    notes = [] if notes is None else notes
     api_key = os.environ.get("SERPAPI_KEY")
     if not api_key:
+        notes.append("SERPAPI_KEY is not set")
         return None
 
     key = (city.lower(), state.lower(), profession.lower())
     cached = _cache.get(key)
     if cached and time.time() - cached[0] < CACHE_TTL_SECONDS:
+        notes.append(f"{profession} in {city}, {state}: {len(cached[1])} listings (cached) from {_employers(cached[1])}")
         return cached[1]
 
     # The place goes in the query: SerpApi's location parameter only accepts names from its own
@@ -100,19 +105,23 @@ def city_listings(city: str, state: str, profession: str):
     params = {"engine": "google_jobs", "q": f"{profession} jobs in {city}, {state}",
               "hl": "en", "gl": "us", "api_key": api_key}
     label = f"{profession} in {city}, {state}"
-    jobs, next_token = _search(params, label)
+    jobs, next_token = _search(params, label, notes)
     if jobs is None:
         return None
     for _ in range(PAGES - 1):
         if not next_token:
             break
-        more, next_token = _search({**params, "next_page_token": next_token}, label)
+        more, next_token = _search({**params, "next_page_token": next_token}, label, notes)
         jobs += more or []
 
-    employers = sorted({j.get("company_name") or "?" for j in jobs})
-    print(f"[openings] {label}: {len(jobs)} listings from {employers}")
+    notes.append(f"{label}: {len(jobs)} listings from {_employers(jobs)}")
+    print(f"[openings] {label}: {len(jobs)} listings from {_employers(jobs)}")
     _cache[key] = (time.time(), jobs)
     return jobs
+
+
+def _employers(jobs) -> str:
+    return ", ".join(sorted({j.get("company_name") or "?" for j in jobs})) or "no employers"
 
 
 def _openings_for(facility: dict, jobs, profession: str):
@@ -131,11 +140,16 @@ def _openings_for(facility: dict, jobs, profession: str):
     return {"source": "Google Jobs via SerpApi", "count": len(listings), "listings": listings[:MAX_LISTINGS]}
 
 
-def add_openings(facility_matches, profession: str):
-    """Attach open roles to each matched facility: one search per city, matched by employer name."""
-    if not facility_matches or not os.environ.get("SERPAPI_KEY"):
+def add_openings(facility_matches, profession: str, notes: list = None):
+    """Attach open roles to each matched facility: one search per city, matched by employer name.
+    Appends one plain line per city to `notes` describing what the search found."""
+    notes = [] if notes is None else notes
+    if not facility_matches:
+        return facility_matches
+    if not os.environ.get("SERPAPI_KEY"):
+        notes.append("SERPAPI_KEY is not set")
         return facility_matches
     cities = sorted({(m["city"], m["state"]) for m in facility_matches})
     with ThreadPoolExecutor(max_workers=4) as pool:
-        by_city = dict(zip(cities, pool.map(lambda c: city_listings(c[0], c[1], profession), cities)))
+        by_city = dict(zip(cities, pool.map(lambda c: city_listings(c[0], c[1], profession, notes), cities)))
     return [{**m, "openings": _openings_for(m, by_city[(m["city"], m["state"])], profession)} for m in facility_matches]
