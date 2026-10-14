@@ -106,9 +106,9 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             facility_matches = None
 
-        openings_notes = []
+        openings_notes, nearby = [], []
         try:
-            facility_matches = add_openings(facility_matches, profession, openings_notes)
+            facility_matches, nearby = add_openings(facility_matches, profession, openings_notes)
         except Exception as exc:
             openings_notes.append(f"lookup crashed ({exc.__class__.__name__})")  # matches still show
 
@@ -121,6 +121,7 @@ class handler(BaseHTTPRequestHandler):
             "verdict_text": verdict_text,
             "summary": summary,
             "facility_matches": facility_matches,
+            "nearby_openings": nearby,
         }
         if owner:
             # The owner also sees what the job search found, to tune matching.

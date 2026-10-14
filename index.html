@@ -299,6 +299,8 @@
   .result-card { margin-top: 1rem; }
   .result-card.t-cred { border-color: var(--accent); }
   .result-card.t-match { border-color: var(--match); }
+  .result-subheading { margin: 1.3rem 0 0.7rem; font-family: var(--display); font-weight: 700; font-size: 1.15rem; color: var(--heading); }
+  .nearby-title { display: block; font-size: 1.1rem; font-weight: 600; color: var(--text); line-height: 1.35; }
   .openings-debug { margin: 0.6rem 0 0; font-family: var(--mono); font-size: 0.72rem; color: var(--muted-2); line-height: 1.5; }
   .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
   .mock.lg { padding: 1.4rem; }
@@ -659,6 +661,10 @@
         ],
         checks_clear: 3
       },
+      nearby_openings: [
+        { title: 'Licensed Psychologist', employer: 'Sample Therapy Group', location: 'Denver, CO', link: 'https://www.google.com/search?q=Licensed+Psychologist' },
+        { title: 'Child & Adolescent Psychologist', employer: 'Sample Health Partners', location: 'Aurora, CO', link: 'https://www.google.com/search?q=Child+Psychologist' }
+      ],
       facility_matches: [
         { name: 'Sample Behavioral Health Hospital', city: 'Denver', state: 'CO', hospital_type: 'Psychiatric', match_pct: 82, cms_rating: null, emergency_services: false,
           reason: 'Psychiatric facility in Denver, same city as practice address.',
@@ -694,6 +700,16 @@
         return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
 '</li>';
       }).join('') + '</ul>';
+  }
+
+  function nearbyHtml(jobs, profession, city) {
+    if (!jobs || !jobs.length) return '';
+    return '<p class="result-subheading">Open ' + esc(profession) + ' roles near ' + esc(city) + '</p>' +
+      jobs.map(function (j) {
+        var meta = [j.employer, j.location].filter(Boolean).join(' · ');
+        return '<div class="mock-row"><div class="l"><a class="nearby-title" href="' + esc(j.link) + '" target="_blank" rel="noopener">' +
+          esc(j.title) + ' ↗</a><small>' + esc(meta) + '</small></div></div>';
+      }).join('');
   }
 
   function renderResult(html) {
@@ -775,7 +791,8 @@
               var pct = m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '';
               return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' +
                 openingsHtml(m) + '</div>' + pct + '</div>';
-            }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span>' +
+            }).join('') + nearbyHtml(r.data.nearby_openings, profession, matches[0].city) +
+            '<span class="tag real">CMS hospital data · real, live, public</span>' +
             (r.data.openings_debug ? '<p class="openings-debug">Job search (owner view): ' + r.data.openings_debug.map(esc).join(' · ') + '</p>' : '') + '</div>';
         } else if (matches && matches.length === 0) {
           matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
