@@ -57,19 +57,23 @@ def find_openings(facility_name: str, city: str, state: str, profession: str):
 
     params = {
         "engine": "google_jobs",
-        "q": f"{profession} {facility_name}",
-        "location": f"{city}, {state}",
+        # The place goes in the query: SerpApi's location parameter only accepts names from its
+        # own canonical list and rejects others (e.g. "Denver, CO") with an error.
+        "q": f"{profession} {facility_name} {city}, {state}",
         "hl": "en",
+        "gl": "us",
         "api_key": api_key,
     }
     try:
-        resp = requests.get(SERPAPI_ENDPOINT, params=params, timeout=10)
+        resp = requests.get(SERPAPI_ENDPOINT, params=params, timeout=15)
         data = resp.json()
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
+        print(f"[openings] SerpApi request failed for {facility_name}: {exc!r}")
         return None
     if resp.status_code != 200 or ("error" in data and "jobs_results" not in data):
         # SerpApi reports "no results" as an error message; anything else means the lookup failed.
         if "hasn't returned any results" not in str(data.get("error", "")):
+            print(f"[openings] SerpApi error for {facility_name}: HTTP {resp.status_code} {data.get('error')}")
             return None
         data = {"jobs_results": []}
 
@@ -83,6 +87,7 @@ def find_openings(facility_name: str, city: str, state: str, profession: str):
             continue
         listings.append({"title": job.get("title"), "link": link, "via": job.get("via")})
 
+    print(f"[openings] {facility_name}: {len(data.get('jobs_results', []))} results, {len(listings)} from this employer")
     result = {"source": "Google Jobs via SerpApi", "count": len(listings), "listings": listings[:MAX_LISTINGS]}
     _cache[key] = (time.time(), result)
     return result

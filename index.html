@@ -143,7 +143,7 @@
   @keyframes spin2 { to { transform: rotate(360deg); } }
 
   .match-card { margin-top: 0.8rem; border-radius: var(--radius); padding: 1rem 1.1rem; background: var(--accent-dim); border: 1px solid var(--accent); }
-  .match-card .match-title { font-family: var(--display); font-weight: 700; font-size: 0.95rem; color: var(--accent); margin-bottom: 0.6rem; }
+  .match-card .match-title { font-family: var(--display); font-weight: 700; font-size: 1.2rem; color: var(--accent); margin-bottom: 0.6rem; }
   .match-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.5rem; }
   .match-row .match-hospital { font-weight: 700; font-family: var(--display); color: var(--heading); font-size: 0.9rem; }
   .match-row .match-role { font-size: 0.8rem; color: var(--muted); text-align: right; }
@@ -304,14 +304,11 @@
   .match-item { padding: 0.7rem 0; border-top: 1px solid #00d4aa33; }
   .match-item .match-row { margin-bottom: 0.2rem; }
   .match-reason { margin: 0; font-size: 0.82rem; color: var(--text); line-height: 1.45; }
-  .match-jobs { display: inline-block; margin-top: 0.45rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; }
-  .match-jobs:hover { text-decoration: underline; }
-  .match-hiring { margin: 0.45rem 0 0.2rem; font-size: 0.8rem; font-weight: 600; color: var(--accent); }
-  .match-hiring.none { font-weight: 400; color: var(--muted-2); }
-  .match-openings { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; }
-  .match-openings li { margin: 0.2rem 0; }
+  .match-hiring { margin: 0.5rem 0 0.25rem; font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+  .match-openings { list-style: none; margin: 0; padding: 0; font-size: 0.95rem; font-weight: 600; }
+  .match-openings li { margin: 0.3rem 0; }
   .match-openings a { color: var(--text); }
-  .match-openings span { color: var(--muted-2); font-size: 0.72rem; }
+  .match-openings span { color: var(--muted-2); font-size: 0.75rem; font-weight: 400; }
   .match-foot { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--muted-2); }
 
   @media (prefers-reduced-motion: reduce) {
@@ -640,19 +637,15 @@
     });
   }
 
-  function openingsHtml(m, jobsUrl) {
+  function openingsHtml(m) {
     var o = m.openings;
-    var search = '<a class="match-jobs" href="' + esc(jobsUrl) + '" target="_blank" rel="noopener">Search open ' + esc(currentProfession()) + ' roles here ↗</a>';
-    if (!o) return search;
-    if (!o.count) return '<p class="match-hiring none">No open ' + esc(currentProfession()) + ' roles listed right now</p>';
+    if (!o || !o.count) return '';
     return '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
       o.listings.map(function (j) {
         return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
           (j.via ? ' <span>' + esc(j.via) + '</span>' : '') + '</li>';
       }).join('') + '</ul>';
   }
-
-  function currentProfession() { return document.getElementById('profession').value; }
 
   function renderResult(html) {
     resultEl.innerHTML = html;
@@ -699,20 +692,18 @@
           matchHtml = '<div class="match-card"><div class="match-title">Matched facilities</div>' +
             matches.map(function (m, i) {
               var meta = [m.city + ', ' + m.state, m.hospital_type].filter(Boolean).join(' · ');
-              var jobsUrl = 'https://www.indeed.com/jobs?q=' + encodeURIComponent(profession + ' "' + m.name + '"') +
-                '&l=' + encodeURIComponent(m.city + ', ' + m.state);
               var chips = (m.match_pct != null ? '<span class="chip ok">' + esc(m.match_pct) + '% match</span>' : '') +
                 (m.cms_rating ? '<span class="chip fit">CMS rating ' + esc(m.cms_rating) + ' of 5</span>' : '') +
                 (m.emergency_services ? '<span class="chip">Emergency services</span>' : '');
               return '<div class="match-item"><div class="match-row"><span class="match-hospital">' + (i + 1) + ' · ' + esc(m.name) + '</span><span class="match-role">' + esc(meta) + '</span></div>' +
                 '<p class="match-reason">' + esc(m.reason) + '</p>' +
                 (chips ? '<div class="match-reasons">' + chips + '</div>' : '') +
-                openingsHtml(m, jobsUrl) + '</div>';
+                openingsHtml(m) + '</div>';
             }).join('') + '<span class="tag real">CMS hospital data · real, live, public</span>' +
             '<p class="match-foot">Match % reflects distance from the practice address, facility type and CMS rating. ' +
-            (matches.some(function (m) { return m.openings; })
+            (matches.some(function (m) { return m.openings && m.openings.count; })
               ? 'Open roles come from Google Jobs listings that name the facility as employer; check each listing for details.'
-              : 'Job links search Indeed listings; openings aren\'t confirmed by Credentialai.') + '</p></div>';
+              : '') + '</p></div>';
         } else if (matches && matches.length === 0) {
           matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
         } else if (cls === 'review' || cls === 'nogo') {
