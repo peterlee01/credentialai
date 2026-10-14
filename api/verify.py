@@ -3,8 +3,8 @@
 Wraps src.coordinator.run_verification (the same code the CLI uses) with the
 HTTP contract the existing frontend (index.html) already expects: POST a
 {first_name, last_name, state, profession} JSON body, get back
-{verdict_text, tool_calls, facility_matches} on success, 429 once the visitor has already used
-their one free verification, or {error} on a bad request or failure.
+{verdict_text, tool_calls, facility_matches} on success, 429 once the visitor has used
+all their free verifications, or {error} on a bad request or failure.
 """
 
 import http.cookies
@@ -32,14 +32,16 @@ ALLOWED_STATES = {
 }
 ALLOWED_PROFESSIONS = {"physician", "psychologist", "counselor", "social worker"}
 
-COOKIE_NAME = "cv_used"
+RUNS_PER_VISITOR = 3
+
+COOKIE_NAME = "cv_used"  # holds how many runs this browser has used
 COOKIE_MAX_AGE = 60 * 60 * 24 * 180  # 180 days
 
 # Best-effort, in-memory per-warm-instance limiter — matches what the privacy
 # policy already describes ("your IP address, used briefly and only in
 # server memory"). Not durable across cold starts; the cookie is the real
 # per-visitor limiter.
-_seen_ips = set()
+_seen_ips = {}  # IP -> runs used
 _seen_ips_reset_at = time.time()
 _SEEN_IPS_TTL = 60 * 60  # clear the in-memory set hourly to bound its size
 
@@ -54,7 +56,12 @@ class handler(BaseHTTPRequestHandler):
 
         cookies = http.cookies.SimpleCookie(self.headers.get("Cookie", ""))
         client_ip = self.headers.get("x-forwarded-for", self.client_address[0])
-        if COOKIE_NAME in cookies or client_ip in _seen_ips:
+        try:
+            cookie_runs = int(cookies[COOKIE_NAME].value) if COOKIE_NAME in cookies else 0
+        except ValueError:
+            cookie_runs = RUNS_PER_VISITOR  # an unreadable count is treated as used up
+        runs_used = max(cookie_runs, _seen_ips.get(client_ip, 0))
+        if runs_used >= RUNS_PER_VISITOR:
             self._send_json(429, {})
             return
 
@@ -96,24 +103,26 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             pass  # openings are a bonus; the matches still show without them
 
-        _seen_ips.add(client_ip)
+        runs_used += 1
+        _seen_ips[client_ip] = runs_used
         self._send_json(
             200,
             {
                 "verdict_text": verdict_text,
                 "tool_calls": tool_calls,
                 "facility_matches": facility_matches,
+                "runs_left": RUNS_PER_VISITOR - runs_used,
             },
-            set_cookie=True,
+            runs_used=runs_used,
         )
 
-    def _send_json(self, status: int, payload: dict, set_cookie: bool = False):
+    def _send_json(self, status: int, payload: dict, runs_used: int = 0):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        if set_cookie:
+        if runs_used:
             self.send_header(
                 "Set-Cookie",
-                f"{COOKIE_NAME}=1; Max-Age={COOKIE_MAX_AGE}; Path=/; HttpOnly; Secure; SameSite=Lax",
+                f"{COOKIE_NAME}={runs_used}; Max-Age={COOKIE_MAX_AGE}; Path=/; HttpOnly; Secure; SameSite=Lax",
             )
         self.end_headers()
         self.wfile.write(json.dumps(payload).encode("utf-8"))
