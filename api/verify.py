@@ -7,6 +7,7 @@ HTTP contract the existing frontend (index.html) already expects: POST a
 all their free verifications, or {error} on a bad request or failure.
 """
 
+import hmac
 import http.cookies
 import json
 import os
@@ -54,6 +55,12 @@ class handler(BaseHTTPRequestHandler):
             _seen_ips.clear()
             _seen_ips_reset_at = time.time()
 
+        # Owner pass: a request carrying the DEMO_BYPASS_KEY secret skips the per-visitor limit
+        # and isn't counted against it.
+        bypass_key = os.environ.get("DEMO_BYPASS_KEY", "")
+        owner = bool(bypass_key) and hmac.compare_digest(
+            self.headers.get("X-Demo-Key", "").encode(), bypass_key.encode())
+
         cookies = http.cookies.SimpleCookie(self.headers.get("Cookie", ""))
         client_ip = self.headers.get("x-forwarded-for", self.client_address[0])
         try:
@@ -61,7 +68,7 @@ class handler(BaseHTTPRequestHandler):
         except ValueError:
             cookie_runs = RUNS_PER_VISITOR  # an unreadable count is treated as used up
         runs_used = max(cookie_runs, _seen_ips.get(client_ip, 0))
-        if runs_used >= RUNS_PER_VISITOR:
+        if runs_used >= RUNS_PER_VISITOR and not owner:
             self._send_json(429, {})
             return
 
@@ -103,18 +110,17 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             pass  # openings are a bonus; the matches still show without them
 
+        payload = {
+            "verdict_text": verdict_text,
+            "tool_calls": tool_calls,
+            "facility_matches": facility_matches,
+        }
+        if owner:
+            self._send_json(200, {**payload, "runs_left": None})
+            return
         runs_used += 1
         _seen_ips[client_ip] = runs_used
-        self._send_json(
-            200,
-            {
-                "verdict_text": verdict_text,
-                "tool_calls": tool_calls,
-                "facility_matches": facility_matches,
-                "runs_left": RUNS_PER_VISITOR - runs_used,
-            },
-            runs_used=runs_used,
-        )
+        self._send_json(200, {**payload, "runs_left": RUNS_PER_VISITOR - runs_used}, runs_used=runs_used)
 
     def _send_json(self, status: int, payload: dict, runs_used: int = 0):
         self.send_response(status)
