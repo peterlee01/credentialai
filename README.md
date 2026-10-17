@@ -93,6 +93,18 @@ was switched to live Colorado records — re-run these against the live license 
 - `NO-GO` via expired or revoked license — a Colorado clinician whose DORA record is expired,
   revoked or suspended
 
+## Verification report (PDF)
+
+Every live run returns a downloadable PDF built on the server by `src/report.py`
+(fpdf2) from the run's own results: clinician (name, profession, specialty,
+state, NPI), the verdict and explanation, each check with its source and the
+record found (NPI, exclusion entries, license number, status, expiry and
+discipline), and the matched employers with their open roles and pay. Each
+report has an ID and a UTC timestamp. Because the PDF is generated server-side
+at verification time, its contents come from the primary-source lookups, not
+from anything the browser sends back. Preview mode downloads
+`sample-report.pdf`, a clearly marked sample.
+
 ## Human review queue
 
 NEEDS REVIEW verdicts aren't just logged and abandoned — `review.py` is a real, working
