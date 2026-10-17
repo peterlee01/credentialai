@@ -7,12 +7,14 @@ HTTP contract the existing frontend (index.html) already expects: POST a
 all their free verifications, or {error} on a bad request or failure.
 """
 
+import base64
 import hmac
 import http.cookies
 import json
 import os
 import sys
 import time
+import uuid
 
 # A deployed function's source bundle is read-only; only /tmp is writable.
 # Point the audit log there before importing the coordinator (audit.py reads
@@ -26,6 +28,7 @@ from http.server import BaseHTTPRequestHandler  # noqa: E402
 from src.coordinator import run_verification  # noqa: E402
 from src.tools_facilities import build_facility_matches  # noqa: E402
 from src.summary import build_summary  # noqa: E402
+from src.report import build_report_pdf  # noqa: E402
 
 ALLOWED_STATES = {
     "Arizona", "California", "Colorado", "Florida", "Georgia",
@@ -114,10 +117,22 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             summary = None  # the page falls back to the verdict text alone
 
+        report = None
+        try:
+            report_id = uuid.uuid4().hex[:12].upper()
+            pdf = build_report_pdf(first_name, last_name, state, profession, verdict_text, summary,
+                                   facility_matches, report_id=report_id)
+            report = {"id": report_id, "filename": f"credentialai-report-{last_name}-{report_id}.pdf".lower(),
+                      "pdf_base64": base64.b64encode(pdf).decode("ascii")}
+            print(f"[report] {report_id} for {first_name} {last_name} ({profession}, {state})")
+        except Exception as exc:
+            print(f"[report] failed ({exc.__class__.__name__})")  # the result still shows without a report
+
         payload = {
             "verdict_text": verdict_text,
             "summary": summary,
             "facility_matches": facility_matches,
+            "report": report,
         }
         if owner:
             self._send_json(200, {**payload, "runs_left": None})

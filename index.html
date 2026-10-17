@@ -287,6 +287,8 @@
   .result-card { margin-top: 1rem; }
   .result-card.t-cred { border-color: var(--accent); }
   .result-card.t-match { border-color: var(--match); }
+  .report-btn { margin-top: 1.1rem; cursor: pointer; background: transparent; font-family: var(--sans); }
+  .report-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
   .mock.lg { padding: 1.4rem; }
@@ -309,7 +311,8 @@
   .mock-explain { margin: 1rem 0 0; font-size: 1rem; line-height: 1.55; color: var(--text); }
   .chip.bad { color: var(--danger); background: var(--danger-dim); border-color: #ff5c5c40; }
   .match-hiring { margin: 0.6rem 0 0.25rem; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
-  .match-openings { list-style: none; margin: 0; padding: 0; font-size: 1rem; font-weight: 400; line-height: 1.5; }
+  .match-openings { list-style: disc; margin: 0; padding-left: 1.2rem; font-size: 1rem; font-weight: 400; line-height: 1.5; }
+  .match-openings li::marker { color: var(--accent); }
   .match-openings li { margin: 0.4rem 0; }
   /* Text links: white, with a green underline that marks them as links. */
   .match-openings a { color: #fff; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
@@ -675,6 +678,20 @@
       }).join('') + '</ul>';
   }
 
+  function downloadReport(report) {
+    var a = document.createElement('a');
+    if (report && report.pdf_base64) {
+      var bytes = atob(report.pdf_base64), buf = new Uint8Array(bytes.length);
+      for (var i = 0; i < bytes.length; i++) buf[i] = bytes.charCodeAt(i);
+      a.href = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }));
+      a.download = report.filename || 'credentialai-report.pdf';
+    } else {
+      a.href = '/sample-report.pdf';  // preview mode: a clearly marked sample
+      a.download = 'credentialai-sample-report.pdf';
+    }
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
   function renderResult(html) {
     resultEl.innerHTML = html;
   }
@@ -741,7 +758,9 @@
           head('') +
           checkRows +
           '<div class="mock-verdict ' + cls + '"><b>' + esc(title) + '</b><small>' + esc(clear) + '</small></div>' +
-          (explain ? '<p class="mock-explain">' + esc(explain) + '</p>' : '') + '</div>';
+          (explain ? '<p class="mock-explain">' + esc(explain) + '</p>' : '') +
+          (r.data.report || PREVIEW ? '<button type="button" class="btn-ghost report-btn" id="reportBtn">Download verification report (PDF)</button>' : '') +
+          '</div>';
 
         var matchHtml = '';
         var matches = r.data.facility_matches;
@@ -761,6 +780,8 @@
           matchHtml = '<p class="match-empty">Facility matching runs only after a GO verdict.</p>';
         }
         renderResult(verifyCard + matchHtml);
+        var reportBtn = document.getElementById('reportBtn');
+        if (reportBtn) reportBtn.addEventListener('click', function () { downloadReport(r.data.report); });
         // The server enforces the per-visitor limit; the button just mirrors it.
         btn.disabled = r.data.runs_left === 0;
       })
