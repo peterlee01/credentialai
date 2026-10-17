@@ -54,29 +54,39 @@
 
 <main class="wrap">
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: January 2026</p>
+  <p class="updated">Last updated: October 2026</p>
 
-  <p>This policy explains what happens to the information you submit through the live verification demo on this site.</p>
+  <p>This policy explains what happens to the information you submit through the live verification demo on this site, and, if you create one, your physician account.</p>
 
   <h2>What we collect</h2>
   <ul>
     <li>The first name, last name, state, and profession you enter into the verification form.</li>
-    <li>Your IP address, used briefly and only in server memory to enforce a one-verification limit per visitor.</li>
+    <li>Your IP address, used briefly and only in server memory to enforce the per-visitor verification limit.</li>
     <li>A single cookie that counts how many of your 3 free verifications you've used.</li>
   </ul>
 
   <h2>How we use it</h2>
-  <p>The information you submit is used solely to run the verification you requested: it is sent to the NPPES NPI Registry and the HHS-OIG List of Excluded Individuals/Entities (both public U.S. government data sources), and to Anthropic's Claude API, which coordinates the check and produces the verdict text you see on screen.</p>
+  <p>The information you submit is used solely to run the verification you requested: it is checked against the NPPES NPI Registry, the HHS-OIG List of Excluded Individuals/Entities and, for Colorado, the Colorado Department of Regulatory Agencies' public license records (all public U.S. government data sources). It is also sent to Anthropic's Claude API, which coordinates the check and writes the verdict text, and the profession and location are used to search job listings (Google Jobs, via SerpApi) for employer matches.</p>
+
+  <h2>Physician accounts</h2>
+  <p>If you create a physician account, we store, in our database provider Supabase:</p>
+  <ul>
+    <li>Your email address, used to sign you in with an emailed link.</li>
+    <li>The name, state, profession and NPI you claim, plus the specialty and practice city from the NPI Registry.</li>
+    <li>Your job preferences (setting, minimum pay, job type).</li>
+    <li>Your verification results (verdict, check details and matched employers), so you can see your last result.</li>
+  </ul>
+  <p>Only you can see your account data. It is not shared with employers. You can delete your account at any time from your account page, which permanently removes your profile and saved verifications.</p>
 
   <h2>What we don't do</h2>
   <ul>
     <li>We do not sell or share the names you submit with any third party for marketing purposes.</li>
     <li>We do not build profiles linking multiple visits together beyond the single rate-limiting cookie.</li>
-    <li>We do not retain submitted names in a database — each request is processed and returned; it is not stored afterward.</li>
+    <li>We do not retain names submitted through the demo on the home page in a database — each request is processed and returned; it is not stored afterward. Only physician accounts are stored, as described above.</li>
   </ul>
 
   <h2>Cookies</h2>
-  <p>We set one HttpOnly cookie (<code>cv_used</code>) purely to enforce the one-verification-per-session limit. It contains no personal information and cannot be read by third-party scripts.</p>
+  <p>We set one HttpOnly cookie (<code>cv_used</code>) purely to enforce the demo's verification limit. It contains no personal information and cannot be read by third-party scripts. If you sign in to a physician account, Supabase keeps your sign-in session in your browser's local storage.</p>
 
   <h2>Questions</h2>
   <p>If you have questions about this policy, contact us at <a href="mailto:info@credentialai.co">info@credentialai.co</a>.</p>

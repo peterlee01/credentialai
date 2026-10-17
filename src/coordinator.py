@@ -82,18 +82,22 @@ def _parse_result(content):
         return None
 
 
-def run_verification(first_name: str, last_name: str, state: str, profession: str):
+def run_verification(first_name: str, last_name: str, state: str, profession: str, npi: str = ""):
     request = {
         "first_name": first_name,
         "last_name": last_name,
         "state": state,
         "profession": profession,
     }
+    if npi:
+        request["npi"] = npi
 
     user_message = (
         f"Verify this clinician: {first_name} {last_name}, practicing in {state} as a "
         f"{profession}."
     )
+    if npi:
+        user_message += f" Their NPI is {npi}; pass it to get_npi_identity to look up that exact record."
 
     client = anthropic.Anthropic()
     runner = client.beta.messages.tool_runner(

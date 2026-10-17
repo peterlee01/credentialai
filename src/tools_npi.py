@@ -22,7 +22,7 @@ _PROFESSION_TAXONOMY_PREFIXES = {
 
 
 @beta_tool
-def get_npi_identity(first_name: str, last_name: str, state: str, profession: str) -> str:
+def get_npi_identity(first_name: str, last_name: str, state: str, profession: str, npi: str = "") -> str:
     """Look up a clinician's NPI record by name, practice state and profession via the NPPES registry.
 
     Args:
@@ -30,15 +30,20 @@ def get_npi_identity(first_name: str, last_name: str, state: str, profession: st
         last_name: Clinician's last name.
         state: Two-letter state code where the clinician practices.
         profession: One of "psychologist", "counselor", "social worker", "physician".
+        npi: The clinician's NPI number, when the request gives one. Looks up that exact record.
     """
     prefixes = _PROFESSION_TAXONOMY_PREFIXES.get(profession.strip().lower(), ())
-    params = {
-        "version": "2.1",
-        "first_name": first_name,
-        "last_name": last_name,
-        "state": state,
-        "limit": 20,
-    }
+    npi = "".join(ch for ch in (npi or "") if ch.isdigit())
+    if npi:
+        params = {"version": "2.1", "number": npi}
+    else:
+        params = {
+            "version": "2.1",
+            "first_name": first_name,
+            "last_name": last_name,
+            "state": state,
+            "limit": 20,
+        }
     resp = requests.get(NPPES_ENDPOINT, params=params, timeout=15)
     resp.raise_for_status()
     data = resp.json()

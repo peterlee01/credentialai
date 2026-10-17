@@ -105,6 +105,26 @@ at verification time, its contents come from the primary-source lookups, not
 from anything the browser sends back. Preview mode downloads
 `sample-report.pdf`, a clearly marked sample.
 
+## Physician accounts (Phase 1)
+
+`account.html` lets a physician sign in with an emailed link (Supabase Auth),
+claim their NPI, set job preferences, run their own verification (3 per day)
+and download their report. `api/account.py` checks the Supabase access token on
+every request and only reads or writes that physician's rows; `src/supa.py`
+talks to Supabase's REST API with the service role key, which never leaves the
+server. Claims are self-attested in Phase 1 (checkbox plus a registry check
+that the NPI carries the physician's last name and profession, and one account
+per NPI); no profile is shown to employers. Preferences (setting, minimum pay,
+job type) filter and re-rank matches (`src/prefs.py`).
+
+Setup:
+1. Create a Supabase project and run `supabase/schema.sql` in its SQL Editor.
+2. Authentication -> URL Configuration: Site URL `https://credentialai.co`,
+   redirect URL `https://credentialai.co/account.html`.
+3. In Vercel, set `SUPABASE_URL`, `SUPABASE_ANON_KEY` and
+   `SUPABASE_SERVICE_ROLE_KEY` (Production), then redeploy. Without them the
+   page shows "Physician accounts open soon".
+
 ## Human review queue
 
 NEEDS REVIEW verdicts aren't just logged and abandoned — `review.py` is a real, working
