@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from anthropic import beta_tool
 
-from .tools_jobs import city_listings, facility_listings, _is_facility_job, _job_city, _link, _title_fits
+from .tools_jobs import city_listings, facility_listings, pay_range, _is_facility_job, _job_city, _link, _title_fits
 
 CMS_ENDPOINT = "https://data.cms.gov/provider-data/api/1/datastore/query/xubh-q36u/0"
 CMS_SOURCE = "CMS Hospital General Information (live, public)"
@@ -209,7 +209,7 @@ def hiring_candidates(profession: str, state: str, specialty: str = "", practice
         group = groups.setdefault(key, {"facility_id": key, **base, "listings": [], "_links": set()})
         if link not in group["_links"]:
             group["_links"].add(link)
-            group["listings"].append({"title": job.get("title"), "link": link})
+            group["listings"].append({"title": job.get("title"), "link": link, "pay": pay_range(job)})
 
     behavioral = prof in BEHAVIORAL_PROFESSIONS
     best = 4 + 3 + 1.5 + 1.5
