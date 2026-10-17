@@ -45,3 +45,10 @@ create policy "read own profile" on public.profiles for select using (auth.uid()
 
 drop policy if exists "read own verifications" on public.verifications;
 create policy "read own verifications" on public.verifications for select using (auth.uid() = user_id);
+
+-- Table access for the Data API. Recommended project setting: "Automatically
+-- expose new tables" OFF, so access is granted explicitly here. Only the server
+-- (service_role, used by api/account.py) touches these tables; the browser never
+-- queries them directly, so anon/authenticated get no table privileges.
+revoke all on public.profiles, public.verifications from anon, authenticated;
+grant select, insert, update, delete on public.profiles, public.verifications to service_role;
