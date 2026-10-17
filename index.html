@@ -269,17 +269,6 @@
   @media (max-width: 900px) { .step-tag { display: block; } }
 
   /* ---------- Before / with ---------- */
-  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: stretch; }
-  @media (max-width: 800px) { .compare { grid-template-columns: 1fr; } }
-  .compare-card { border-radius: var(--radius-xl); padding: 2rem; border: 1px solid var(--border); background: var(--panel); }
-  .compare-card.with { border-color: #00d4aa40; background: linear-gradient(160deg, #00d4aa12, #4a9eff12 70%), var(--panel); box-shadow: var(--glow-panel); }
-  .compare-card h3 { font-family: var(--display); font-size: 1.25rem; color: var(--heading); margin: 0 0 1.2rem; }
-  .compare-card.before h3 { color: var(--muted); }
-  .compare-card ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.9rem; }
-  .compare-card li { display: flex; gap: 0.75rem; font-size: 1rem; }
-  .compare-card li svg { flex: none; width: 18px; height: 18px; margin-top: 0.2rem; }
-  .compare-card.before li svg { color: var(--muted-2); }
-  .compare-card.with li svg { color: var(--accent); }
 
   /* ---------- Audiences ---------- */
   .aud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
@@ -522,33 +511,7 @@
   </div>
 </section>
 
-<section class="band" id="why">
-  <div class="wrap">
-    <p class="band-label">What changes</p>
-    <h2>Less waiting. <span class="soft">Fewer handoffs.</span></h2>
-    <p class="section-dek">Clearing a physician and placing them are usually two separate jobs. Here they are one.</p>
-    <div class="compare">
-      <div class="compare-card before">
-        <h3>Without Credentialai</h3>
-        <ul>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Credentialing can take 90 to 120 days</span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Staff look up each source by hand</span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg><span>A cleared physician still waits for someone to find them a placement</span></li>
-        </ul>
-      </div>
-      <div class="compare-card with">
-        <h3>With Credentialai</h3>
-        <ul>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><span>Checks run in parallel and return in under a minute</span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><span>Every finding names the record it came from</span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><span>Cleared physicians are matched to facilities right away</span></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="band alt" id="who">
+<section class="band" id="who">
   <div class="wrap">
     <p class="band-label">Who it is for</p>
     <h2>Built for both sides <span class="soft">of the hire.</span></h2>
@@ -579,7 +542,7 @@
   </div>
 </section>
 
-<section class="band">
+<section class="band alt">
   <div class="wrap">
     <div class="cta-card">
       <h2>See credentialing and matching in one run.</h2>
