@@ -314,6 +314,7 @@
   /* Text links: white, with a green underline that marks them as links. */
   .match-openings a { color: #fff; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
   .match-openings a:hover { color: var(--accent); }
+  .job-pay { display: block; margin-top: 0.1rem; font-size: 0.875rem; color: var(--muted); }
 
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
@@ -622,7 +623,7 @@
 
   function sampleResult(first, last, state, profession) {
     var name = (first || 'Timothy') + ' ' + (last || 'Shea');
-    var job = function (title) { return { title: title, link: 'https://www.google.com/search?q=' + encodeURIComponent(title) }; };
+    var job = function (title, pay) { return { title: title, pay: pay, link: 'https://www.google.com/search?q=' + encodeURIComponent(title) }; };
     return {
       verdict_text: 'GO\nPreview with sample data. ' + name + ' is a clinical ' + profession + ' in Denver listed in the national provider registry. ' +
         last + ' doesn\'t appear on the federal list of excluded providers, and the ' + state + ' licensing board shows the license as active through August 2027.',
@@ -639,10 +640,10 @@
       facility_matches: [
         { name: 'Sample Behavioral Health Hospital', city: 'Denver', state: 'CO', hospital_type: 'Psychiatric', match_pct: 82, cms_rating: null, emergency_services: false,
           reason: 'Psychiatric facility in Denver, same city as practice address.',
-          openings: { count: 2, listings: [job('Clinical Psychologist'), job('Staff Psychologist, Inpatient')] } },
+          openings: { count: 2, listings: [job('Clinical Psychologist', '$120K–$145K a year'), job('Staff Psychologist, Inpatient')] } },
         { name: 'Sample Medical Center', city: 'Denver', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 65, cms_rating: 5, emergency_services: true,
           reason: 'Same city as practice; CMS overall rating 5 of 5.',
-          openings: { count: 1, listings: [job('Health Psychologist')] } },
+          openings: { count: 1, listings: [job('Health Psychologist', '$62–$75 an hour')] } },
         { name: 'Sample Regional Hospital', city: 'Aurora', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 51, cms_rating: 4, emergency_services: true,
           reason: 'Same ZIP area as practice; CMS overall rating 4 of 5.', openings: { count: 1, listings: [job('Psychologist, Outpatient')] } }
       ]
@@ -669,6 +670,7 @@
     return '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
       o.listings.map(function (j) {
         return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
+          (j.pay ? '<span class="job-pay">' + esc(j.pay) + '</span>' : '') +
 '</li>';
       }).join('') + '</ul>';
   }

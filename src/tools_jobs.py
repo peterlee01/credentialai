@@ -171,6 +171,23 @@ def _job_city(job: dict) -> str:
     return (job.get("location") or "").split(",")[0].strip().lower()
 
 
+_PAY_PERIOD = r"a year|an hour|a month|a week|per (year|hour|month|week)|/\s*(yr|hr|year|hour)"
+
+
+def pay_range(job: dict):
+    """The listing's pay as Google Jobs shows it (e.g. "$140K–$165K a year"), or None."""
+    pay = (job.get("detected_extensions") or {}).get("salary")
+    if not pay:
+        pay = next((e for e in job.get("extensions") or [] if isinstance(e, str) and re.search(_PAY_PERIOD, e.lower())
+                    and re.search(r"\d", e)), None)
+    if not pay:
+        return None
+    pay = pay.strip()
+    if "$" not in pay:  # Google often drops the currency: "140K–165K a year"
+        pay = re.sub(r"(?<![\d.,])(\d[\d,.]*\s*[KkMm]?)", r"$\1", pay)
+    return pay
+
+
 def _link(job: dict):
     apply_links = job.get("apply_options") or []
     return (apply_links[0].get("link") if apply_links else None) or job.get("share_link")
