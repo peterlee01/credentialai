@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>For physicians — Credentialai</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Physicians: verify your identity, sanctions and license, download your report, and see employers hiring for your profession." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d; --panel: #12131a; --panel-2: #171922; --border: #1b1d23; --border-strong: #ffffff1a; --border-strong-2: #ffffff33;
+    --text: #c2cad6; --heading: #f2f4f7; --muted: #94a3b8; --muted-2: #64748b;
+    --accent: #00d4aa; --accent-2: #4a9eff; --accent-dim: #00d4aa1a; --match: #4a9eff; --match-dim: #4a9eff1f;
+    --warn: #edb200; --warn-dim: #edb20026; --danger: #fb2c36; --danger-dim: #fb2c3626;
+    --radius: .75rem; --radius-lg: 1rem;
+    --gradient-accent: linear-gradient(90deg, var(--accent), var(--accent-2));
+    --display: "Space Grotesk", ui-sans-serif, sans-serif;
+    --sans: "Inter", -apple-system, "Segoe UI", ui-sans-serif, sans-serif;
+    --mono: "SF Mono", "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 16px; line-height: 1.7; }
+  a { color: inherit; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 1.5rem; }
+  nav.top { max-width: 1160px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 1.35rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .word { font-family: var(--display); font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: var(--heading); }
+  .logo-mark { position: relative; width: 1.6rem; height: 1.6rem; flex: none; }
+  .logo-mark span { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; }
+  .logo-mark .r1 { border-top-color: var(--accent); border-right-color: var(--accent); opacity: .8; animation: spin 4s linear infinite; }
+  .logo-mark .r2 { inset: 3px; border-bottom-color: var(--accent-2); border-left-color: var(--accent-2); opacity: .7; animation: spin 3s linear infinite reverse; }
+  .logo-mark .dot { position: absolute; inset: 0; margin: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .word .ai { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 1.2rem; font-size: 0.85rem; color: var(--muted); }
+  .nav-right a, .link-btn { color: var(--muted); text-decoration: none; background: none; border: 0; font: inherit; cursor: pointer; padding: 0; }
+  .nav-right a:hover, .link-btn:hover { color: var(--accent); }
+  main { padding: 3.5rem 0 5rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin: 0 0 1rem; font-weight: 600; }
+  h1 { font-family: var(--display); font-size: 2.2rem; font-weight: 700; color: var(--heading); margin: 0 0 1rem; line-height: 1.2; }
+  h2 { font-family: var(--display); font-size: 1.3rem; font-weight: 700; color: var(--heading); margin: 0 0 0.8rem; }
+  p { margin: 0 0 1rem; }
+  .muted { color: var(--muted); }
+  .panel { background: var(--panel); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 1.6rem; margin-top: 1.5rem; }
+  .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+  .field label { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+  .field input, .field select { width: 100%; padding: 0.65rem 0.75rem; background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--heading); font: inherit; font-size: 0.95rem; }
+  .field input:focus, .field select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; }
+  @media (max-width: 640px) { .row2, .row3 { grid-template-columns: 1fr; } }
+  .btn-primary, .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.8rem 1.5rem; border-radius: 999px; font-weight: 700; font-size: 0.92rem; text-decoration: none; cursor: pointer; font-family: var(--sans); }
+  .btn-primary { background: var(--gradient-accent); color: #04120d; border: 0; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border-strong-2); color: var(--heading); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; margin-top: 0.4rem; }
+  .note { font-size: 0.85rem; color: var(--muted); }
+  .error { color: var(--danger); font-size: 0.9rem; margin-top: 0.6rem; }
+  .ok-msg { color: var(--accent); font-size: 0.9rem; margin-top: 0.6rem; }
+  .record { display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--panel-2); margin-bottom: 0.6rem; cursor: pointer; }
+  .record input { margin-top: 0.35rem; accent-color: var(--accent); }
+  .record b { color: var(--heading); display: block; }
+  .record small { color: var(--muted); font-size: 0.85rem; }
+  .record.taken { opacity: 0.5; cursor: not-allowed; }
+  .check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 1rem 0; font-size: 0.95rem; }
+  .check input { margin-top: 0.35rem; accent-color: var(--accent); }
+  .profile-line b { color: var(--heading); }
+  /* Result cards (same design as the home page results) */
+  .mock { background: #0a0b0d; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 1.4rem; margin-top: 1rem; }
+  .mock.t-cred { border-color: var(--accent); } .mock.t-match { border-color: var(--match); }
+  .mock-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.9rem; }
+  .mock-person { display: flex; align-items: center; gap: 0.7rem; }
+  .avatar { flex: none; width: 3rem; height: 3rem; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; color: #04120d; }
+  .mock-person b { display: block; font-family: var(--display); color: var(--heading); font-size: 1.2rem; line-height: 1.2; }
+  .mock-person small { color: var(--muted-2); font-size: 0.92rem; }
+  .mock-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 0.6rem; background: var(--panel); border: 1px solid var(--border); margin-bottom: 0.6rem; }
+  .mock-row.top { align-items: flex-start; }
+  .mock-row .l { min-width: 0; }
+  .mock-row .l b { display: block; font-size: 1.08rem; color: var(--heading); font-weight: 600; }
+  .mock-row .l small { font-family: var(--mono); font-size: 0.8rem; color: var(--muted-2); }
+  .chip { display: inline-flex; flex: none; font-family: var(--mono); font-size: 0.8rem; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--muted); white-space: nowrap; }
+  .chip.ok { color: var(--accent); background: var(--accent-dim); border-color: #00d4aa33; }
+  .chip.fit { color: var(--match); background: var(--match-dim); border-color: #4a9eff40; }
+  .chip.warn { color: var(--warn); background: var(--warn-dim); border-color: #edb20040; }
+  .chip.bad { color: var(--danger); background: var(--danger-dim); border-color: #ff5c5c40; }
+  .mock-verdict { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.75rem; padding: 1rem 1.15rem; border-radius: 0.6rem; background: var(--accent-dim); border: 1px solid var(--accent); }
+  .mock-verdict b { font-family: var(--display); color: var(--accent); font-size: 1.5rem; }
+  .mock-verdict small { font-size: 0.95rem; }
+  .mock-verdict.review { background: var(--warn-dim); border-color: var(--warn); } .mock-verdict.review b { color: var(--warn); }
+  .mock-verdict.nogo { background: var(--danger-dim); border-color: var(--danger); } .mock-verdict.nogo b { color: var(--danger); }
+  .mock-explain { margin: 1rem 0 0; }
+  .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
+  .match-hiring { margin: 0.6rem 0 0.25rem; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
+  .match-openings { list-style: disc; margin: 0; padding-left: 1.2rem; }
+  .match-openings li::marker { color: var(--accent); }
+  .match-openings li { margin: 0.4rem 0; }
+  .match-openings a { color: #fff; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  .match-openings a:hover { color: var(--accent); }
+  .job-pay { display: block; margin-top: 0.1rem; font-size: 0.875rem; color: var(--muted); }
+  .spinner { display: inline-block; width: 0.85rem; height: 0.85rem; border: 2px solid var(--border-strong-2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 0.5rem; vertical-align: -1px; }
+  .hidden { display: none !important; }
+  footer.site-footer { border-top: 1px solid var(--border); padding: 2.5rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--muted-2); }
+</style>
+</head>
+<body>
+<nav class="top">
+  <a class="word" href="index.html">
+    <span class="logo-mark"><span class="r1"></span><span class="r2"></span><span class="dot"></span></span>
+    Credential<span class="ai">ai</span>
+  </a>
+  <div class="nav-right">
+    <span id="whoami"></span>
+    <button class="link-btn hidden" id="signOut" type="button">Sign out</button>
+    <a href="index.html">← Back to home</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <p class="eyebrow">For physicians</p>
+  <h1>Get verified. See who's hiring.</h1>
+  <p class="muted">Check your own identity, sanctions and license against primary sources, download your verification report, and see employers near you hiring for your profession.</p>
+
+  <!-- Accounts not set up on the server yet -->
+  <section class="panel hidden" id="viewOff">
+    <h2>Physician accounts open soon</h2>
+    <p>Sign-up isn't available yet. You can still <a href="index.html#verify">try a live verification</a> on the home page.</p>
+  </section>
+
+  <!-- Signed out -->
+  <section class="panel hidden" id="viewSignIn">
+    <h2>Sign in or create an account</h2>
+    <p class="note">We'll email you a sign-in link. No password needed.</p>
+    <form id="signInForm">
+      <div class="field"><label for="email">Email</label><input id="email" type="email" required autocomplete="email" /></div>
+      <div class="actions"><button class="btn-primary" type="submit" id="signInBtn">Email me a sign-in link</button></div>
+      <p class="ok-msg hidden" id="signInSent">Check your inbox for the sign-in link. You can close this tab.</p>
+      <p class="error hidden" id="signInError"></p>
+    </form>
+  </section>
+
+  <!-- Signed in, no NPI claimed yet -->
+  <section class="panel hidden" id="viewClaim">
+    <h2>Claim your NPI</h2>
+    <p class="note">Find your record in the national provider registry and confirm it's you.</p>
+    <form id="searchForm">
+      <div class="row2">
+        <div class="field"><label for="fn">First name</label><input id="fn" required autocomplete="given-name" /></div>
+        <div class="field"><label for="ln">Last name</label><input id="ln" required autocomplete="family-name" /></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="state">State</label>
+          <select id="state" required>
+            <option>Arizona</option><option>California</option><option selected>Colorado</option><option>Florida</option><option>Georgia</option>
+            <option>Illinois</option><option>New York</option><option>Ohio</option><option>Texas</option><option>Virginia</option>
+          </select></div>
+        <div class="field"><label for="profession">Profession</label>
+          <select id="profession" required>
+            <option value="physician">Physician</option><option value="psychologist">Psychologist</option>
+            <option value="counselor">Counselor</option><option value="social worker">Social worker</option>
+          </select></div>
+      </div>
+      <div class="actions"><button class="btn-primary" type="submit" id="searchBtn">Find my NPI</button></div>
+      <p class="error hidden" id="searchError"></p>
+    </form>
+    <form id="claimForm" class="hidden">
+      <h2 style="margin-top:1.5rem">Choose your record</h2>
+      <div id="records"></div>
+      <label class="check"><input type="checkbox" id="attest" /> <span>I confirm this NPI record is me. Claiming someone else's record is not allowed.</span></label>
+      <div class="actions"><button class="btn-primary" type="submit" id="claimBtn">Claim this NPI</button></div>
+      <p class="error hidden" id="claimError"></p>
+    </form>
+  </section>
+
+  <!-- Signed in with a profile -->
+  <section class="hidden" id="viewDash">
+    <div class="panel">
+      <h2>Your profile</h2>
+      <p class="profile-line" id="profileLine"></p>
+      <h2 style="margin-top:1.4rem">Job preferences</h2>
+      <form id="prefsForm">
+        <div class="row3">
+          <div class="field"><label for="setting">Setting</label>
+            <select id="setting"><option value="">Any</option><option value="inpatient">Inpatient</option><option value="outpatient">Outpatient</option><option value="telehealth">Telehealth</option></select></div>
+          <div class="field"><label for="minPay">Minimum pay (per year)</label><input id="minPay" type="number" min="0" step="5000" placeholder="e.g. 120000" /></div>
+          <div class="field"><label for="employment">Job type</label>
+            <select id="employment"><option value="">Any</option><option value="full-time">Full-time</option><option value="part-time">Part-time</option></select></div>
+        </div>
+        <div class="actions"><button class="btn-ghost" type="submit" id="prefsBtn">Save preferences</button><span class="ok-msg hidden" id="prefsSaved">Saved</span></div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Your verification</h2>
+      <p class="note" id="runsLeft"></p>
+      <div class="actions"><button class="btn-primary" type="button" id="verifyBtn">Run my verification</button></div>
+      <p class="error hidden" id="verifyError"></p>
+      <div id="result"></div>
+    </div>
+
+    <div class="actions" style="margin-top:2rem">
+      <button class="link-btn" type="button" id="deleteBtn">Delete my account</button>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">© 2026 Credentialai Systems, Inc. All rights reserved.</footer>
+
+<script>
+(function () {
+  var SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+  var client = null;
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function show(id) {
+    ['viewOff', 'viewSignIn', 'viewClaim', 'viewDash'].forEach(function (v) { $(v).classList.toggle('hidden', v !== id); });
+  }
+  function msg(id, text) { var el = $(id); el.textContent = text || ''; el.classList.toggle('hidden', !text); }
+
+  function token() {
+    return client ? client.auth.getSession().then(function (r) { return r.data.session && r.data.session.access_token; })
+                  : Promise.resolve(null);
+  }
+  function api(method, body) {
+    return token().then(function (t) {
+      var headers = { 'Content-Type': 'application/json' };
+      if (t) headers.Authorization = 'Bearer ' + t;
+      return fetch('/api/account', { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined })
+        .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); });
+    });
+  }
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+    });
+  }
+
+  // ---------- results (same design as the home page) ----------
+  function verdictClass(text) {
+    var first = (text || '').trim().split('\n')[0].trim().toUpperCase();
+    return first === 'GO' ? 'go' : first === 'NEEDS REVIEW' ? 'review' : first === 'NO-GO' ? 'nogo' : '';
+  }
+  function head(person) {
+    return '<div class="mock-head"><div class="mock-person"><span class="avatar">' + esc(person.initials) + '</span>' +
+      '<div><b>' + esc(person.name) + '</b><small>' + esc(person.subtitle) + '</small></div></div></div>';
+  }
+  function renderResult(data, reportFromServer) {
+    var lines = (data.verdict_text || '').trim().split('\n');
+    var s = data.summary || {};
+    var person = s.person || { name: '', initials: '', subtitle: '' };
+    var html = '<div class="mock t-cred">' + head(person) +
+      (s.checks || []).map(function (c) {
+        return '<div class="mock-row"><div class="l"><b>' + esc(c.label) + '</b><small>' + esc(c.source) + '</small></div>' +
+          '<span class="chip ' + esc(c.tone) + '">' + esc(c.status) + '</span></div>';
+      }).join('') +
+      '<div class="mock-verdict ' + verdictClass(data.verdict_text) + '"><b>' + esc(lines[0]) + '</b><small>' +
+      (s.checks ? esc(s.checks_clear + ' of 3 checks clear, each cited') : '') + '</small></div>' +
+      (lines.length > 1 ? '<p class="mock-explain">' + esc(lines.slice(1).join(' ').trim()) + '</p>' : '') +
+      (reportFromServer ? '<div class="actions" style="margin-top:1rem"><button class="btn-ghost" type="button" id="reportBtn">Download verification report (PDF)</button></div>' : '') +
+      '</div>';
+    var matches = data.facility_matches || data.matches;
+    if (matches && matches.length) {
+      html += '<div class="mock t-match"><p class="result-heading">Employers hiring for you</p>' +
+        matches.map(function (m, i) {
+          var meta = [m.city + ', ' + m.state, m.hospital_type, m.cms_rating ? 'Rated ' + m.cms_rating + ' of 5' : ''].filter(Boolean).join(' · ');
+          var o = m.openings;
+          var jobs = o && o.count ? '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
+            o.listings.map(function (j) {
+              return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
+                (j.pay ? '<span class="job-pay">' + esc(j.pay) + '</span>' : '') + '</li>';
+            }).join('') + '</ul>' : '';
+          return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' + jobs + '</div>' +
+            (m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '') + '</div>';
+        }).join('') + '</div>';
+    }
+    $('result').innerHTML = html;
+    var btn = $('reportBtn');
+    if (btn) btn.addEventListener('click', function () { downloadReport(reportFromServer); });
+  }
+  function downloadReport(report) {
+    var bytes = atob(report.pdf_base64), buf = new Uint8Array(bytes.length);
+    for (var i = 0; i < bytes.length; i++) buf[i] = bytes.charCodeAt(i);
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }));
+    a.download = report.filename || 'credentialai-report.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  // ---------- views ----------
+  function renderDash(d) {
+    var p = d.profile;
+    $('profileLine').innerHTML = '<b>' + esc(p.first_name + ' ' + p.last_name) + '</b> · NPI ' + esc(p.npi) + '<br>' +
+      esc([p.specialty || p.profession, p.practice_city, p.state].filter(Boolean).join(' · '));
+    var prefs = p.prefs || {};
+    $('setting').value = prefs.setting || '';
+    $('minPay').value = prefs.min_pay || '';
+    $('employment').value = prefs.employment || '';
+    setRunsLeft(d.runs_left);
+    if (d.latest && !$('result').innerHTML) {
+      renderResult(d.latest, null);
+      $('result').insertAdjacentHTML('afterbegin', '<p class="note" style="margin-top:1rem">Last run ' +
+        esc(new Date(d.latest.created_at).toLocaleString()) + '. Run again to download a fresh report.</p>');
+    }
+    show('viewDash');
+  }
+  function setRunsLeft(n) {
+    if (n == null) return;
+    $('runsLeft').textContent = n > 0 ? 'Checks your identity, sanctions and license, then finds employers hiring near you. ' +
+      n + ' of 3 runs left today.' : 'You have used your 3 runs for today. Come back tomorrow.';
+    $('verifyBtn').disabled = n <= 0;
+  }
+  function refresh() {
+    return api('GET').then(function (r) {
+      var d = r.data;
+      if (!d.configured) { show('viewOff'); return; }
+      $('whoami').textContent = d.user ? d.user.email : '';
+      $('signOut').classList.toggle('hidden', !d.user);
+      if (!d.user) { show('viewSignIn'); return; }
+      if (!d.profile) { show('viewClaim'); return; }
+      renderDash(d);
+    });
+  }
+
+  // ---------- actions ----------
+  $('signInForm').addEventListener('submit', function (e) {
+    e.preventDefault(); msg('signInError'); $('signInBtn').disabled = true;
+    client.auth.signInWithOtp({ email: $('email').value.trim(), options: { emailRedirectTo: location.origin + '/account.html' } })
+      .then(function (r) {
+        $('signInBtn').disabled = false;
+        if (r.error) { msg('signInError', r.error.message); return; }
+        $('signInSent').classList.remove('hidden');
+      });
+  });
+  $('signOut').addEventListener('click', function () { client.auth.signOut().then(function () { $('result').innerHTML = ''; refresh(); }); });
+
+  var lastSearch = null;
+  $('searchForm').addEventListener('submit', function (e) {
+    e.preventDefault(); msg('searchError'); $('searchBtn').disabled = true;
+    lastSearch = { first_name: $('fn').value.trim(), last_name: $('ln').value.trim(), state: $('state').value, profession: $('profession').value };
+    api('POST', Object.assign({ action: 'npi_search' }, lastSearch)).then(function (r) {
+      $('searchBtn').disabled = false;
+      if (r.status !== 200) { msg('searchError', r.data.error); return; }
+      var recs = r.data.records || [];
+      if (!recs.length) { msg('searchError', 'No ' + lastSearch.profession + ' record found for that name in ' + lastSearch.state + '. Check the spelling and state.'); $('claimForm').classList.add('hidden'); return; }
+      $('records').innerHTML = recs.map(function (rec, i) {
+        var where = [rec.practice_city ? rec.practice_city.charAt(0) + rec.practice_city.slice(1).toLowerCase() : '', rec.primary_taxonomy_state].filter(Boolean).join(', ');
+        return '<label class="record' + (rec.claimed ? ' taken' : '') + '"><input type="radio" name="npi" value="' + esc(rec.npi) + '"' +
+          (rec.claimed ? ' disabled' : (i === 0 ? ' checked' : '')) + ' />' +
+          '<span><b>' + esc([rec.first_name, rec.last_name, rec.credential].filter(Boolean).join(' ')) + ' · NPI ' + esc(rec.npi) + '</b>' +
+          '<small>' + esc([rec.primary_taxonomy_desc, where].filter(Boolean).join(' · ')) + (rec.claimed ? ' · already claimed' : '') + '</small></span></label>';
+      }).join('');
+      $('claimForm').classList.remove('hidden');
+    });
+  });
+  $('claimForm').addEventListener('submit', function (e) {
+    e.preventDefault(); msg('claimError');
+    var picked = document.querySelector('input[name="npi"]:checked');
+    if (!picked) { msg('claimError', 'Choose your record.'); return; }
+    if (!$('attest').checked) { msg('claimError', 'Please confirm this record is you.'); return; }
+    $('claimBtn').disabled = true;
+    api('POST', Object.assign({ action: 'claim', npi: picked.value, attest: true }, lastSearch)).then(function (r) {
+      $('claimBtn').disabled = false;
+      if (r.status !== 200) { msg('claimError', r.data.error); return; }
+      refresh();
+    });
+  });
+  $('prefsForm').addEventListener('submit', function (e) {
+    e.preventDefault(); $('prefsBtn').disabled = true;
+    api('POST', { action: 'prefs', prefs: { setting: $('setting').value, min_pay: $('minPay').value, employment: $('employment').value } })
+      .then(function (r) {
+        $('prefsBtn').disabled = false;
+        $('prefsSaved').classList.toggle('hidden', r.status !== 200);
+        setTimeout(function () { $('prefsSaved').classList.add('hidden'); }, 2000);
+      });
+  });
+  $('verifyBtn').addEventListener('click', function () {
+    msg('verifyError'); $('verifyBtn').disabled = true;
+    $('result').innerHTML = '<p class="note" style="margin-top:1rem"><span class="spinner"></span>Checking identity, sanctions and license, then finding employers hiring for you. This can take up to a minute.</p>';
+    api('POST', { action: 'verify' }).then(function (r) {
+      if (r.status !== 200) { $('result').innerHTML = ''; msg('verifyError', r.data.error); refresh(); return; }
+      renderResult(r.data, r.data.report);
+      setRunsLeft(r.data.runs_left);
+    }).catch(function () { $('result').innerHTML = ''; msg('verifyError', 'Network error. Please try again.'); $('verifyBtn').disabled = false; });
+  });
+  $('deleteBtn').addEventListener('click', function () {
+    if (!confirm('Delete your account, profile and saved verifications? This cannot be undone.')) return;
+    api('POST', { action: 'delete' }).then(function (r) {
+      if (r.status === 200) client.auth.signOut().then(function () { $('result').innerHTML = ''; refresh(); });
+      else alert(r.data.error || 'Could not delete the account.');
+    });
+  });
+
+  // ---------- start ----------
+  fetch('/api/account').then(function (r) { return r.json(); }).then(function (cfg) {
+    if (!cfg.configured) { show('viewOff'); return; }
+    return loadScript(SUPABASE_JS).then(function () {
+      client = window.supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
+      client.auth.onAuthStateChange(function () { refresh(); });
+      return refresh();
+    });
+  }).catch(function () { show('viewOff'); });
+})();
+</script>
+</body>
+</html>

@@ -21,6 +21,7 @@ import requests
 from anthropic import beta_tool
 
 from .tools_jobs import city_listings, facility_listings, pay_range, _is_facility_job, _job_city, _link, _title_fits
+from . import prefs as prefs_mod
 
 CMS_ENDPOINT = "https://data.cms.gov/provider-data/api/1/datastore/query/xubh-q36u/0"
 CMS_SOURCE = "CMS Hospital General Information (live, public)"
@@ -209,7 +210,14 @@ def hiring_candidates(profession: str, state: str, specialty: str = "", practice
         group = groups.setdefault(key, {"facility_id": key, **base, "listings": [], "_links": set()})
         if link not in group["_links"]:
             group["_links"].add(link)
-            group["listings"].append({"title": job.get("title"), "link": link, "pay": pay_range(job)})
+            ext = job.get("detected_extensions") or {}
+            pay = pay_range(job)
+            group["listings"].append({
+                "title": job.get("title"), "link": link, "pay": pay,
+                "pay_annual_min": prefs_mod.pay_annual_min(pay),
+                "schedule": ext.get("schedule_type"),
+                "remote": bool(ext.get("work_from_home")) or _job_city(job) in ("anywhere", "remote"),
+            })
 
     behavioral = prof in BEHAVIORAL_PROFESSIONS
     best = 4 + 3 + 1.5 + 1.5
@@ -298,22 +306,44 @@ def rank_facility_matches(ranked: list[dict]) -> str:
     return json.dumps({"recorded": len(ranked)})
 
 
-def build_facility_matches(tool_calls: list, limit: int = 5, notes: list = None):
+def apply_prefs(candidates: list, prefs: dict) -> list:
+    """Drop listings that clearly fail the physician's preferences, drop employers left with
+    none, add a setting bonus to the match %, and re-sort best fit first."""
+    out = []
+    for c in candidates:
+        listings = [l for l in c.get("listings", []) if prefs_mod.listing_fits(c, l, prefs)]
+        if c.get("listings") and not listings:
+            continue
+        c = {**c, "listings": listings}
+        bonus = prefs_mod.setting_bonus(c, prefs)
+        if bonus:
+            c["match_pct"] = max(0, min(100, round(c["match_pct"] + 100 * bonus / 10)))
+            if bonus > 0:
+                c["signals"] = c["signals"] + [f"Suits your {prefs['setting']} preference"]
+        out.append(c)
+    return sorted(out, key=lambda c: -c["match_pct"])
+
+
+def build_facility_matches(tool_calls: list, limit: int = 5, notes: list = None, prefs: dict = None):
     """Turn the coordinator's tool calls into the list the product UI shows.
 
     Returns None when matching did not run (any verdict other than GO). Uses the
     coordinator's ranking and reasons when it supplied valid ones, and falls back
     to the scored order otherwise. Searches are cached, so rebuilding the
-    candidates here doesn't repeat them.
+    candidates here doesn't repeat them. With a physician's preferences, matches
+    are filtered and ordered by preference-adjusted fit instead of the AI ranking.
     """
     match_call = next((t for t in tool_calls if t["name"] == "match_facilities"), None)
     if not match_call:
         return None
     candidates, _ = _candidates(match_call["input"], notes)
+    prefs = prefs_mod.clean(prefs)
+    if prefs:
+        candidates = apply_prefs(candidates, prefs)
     by_id = {c["facility_id"]: c for c in candidates}
 
     ordered = []
-    rank_call = next((t for t in reversed(tool_calls) if t["name"] == "rank_facility_matches"), None)
+    rank_call = None if prefs else next((t for t in reversed(tool_calls) if t["name"] == "rank_facility_matches"), None)
     for item in ((rank_call or {}).get("input", {}).get("ranked") or []):
         if not isinstance(item, dict):
             continue
@@ -329,6 +359,6 @@ def build_facility_matches(tool_calls: list, limit: int = 5, notes: list = None)
             ordered.append({**candidate, "reason": "; ".join(candidate["signals"]), "ranked_by": "score"})
 
     for match in ordered:
-        listings = match.pop("listings", None)
+        listings = [{k: l.get(k) for k in ("title", "link", "pay")} for l in (match.pop("listings", None) or [])]
         match["openings"] = {"count": len(listings), "listings": listings[:3]} if listings else None
     return ordered[:limit]
