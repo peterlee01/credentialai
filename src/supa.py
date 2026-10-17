@@ -4,9 +4,10 @@ Uses Supabase's REST endpoints directly with requests (no extra dependency):
   - GET /auth/v1/user with the physician's access token tells us who they are;
   - /rest/v1/<table> with the service role key reads and writes rows;
   - /auth/v1/admin/users/<id> deletes an account.
-The service role key bypasses row-level security, so it stays on the server
-(Vercel env SUPABASE_SERVICE_ROLE_KEY) and every query here is scoped to the
-signed-in user's id.
+The secret key (new sb_secret_... or legacy service_role) bypasses row-level
+security, so it stays on the server (Vercel env SUPABASE_SERVICE_ROLE_KEY) and
+every query here is scoped to the signed-in user's id. The browser uses the
+publishable key (sb_publishable_... or legacy anon) as SUPABASE_ANON_KEY.
 """
 
 import os
@@ -51,8 +52,12 @@ def user_from_token(token: str):
 
 def _headers(extra=None):
     _, _, service = _env()
-    return {"apikey": service, "Authorization": f"Bearer {service}", "Content-Type": "application/json",
-            **(extra or {})}
+    headers = {"apikey": service, "Content-Type": "application/json"}
+    # New-style secret keys (sb_secret_...) go only in the apikey header; Authorization: Bearer is for
+    # JWTs. Legacy service_role keys are JWTs and are also sent as the bearer token.
+    if not service.startswith("sb_"):
+        headers["Authorization"] = f"Bearer {service}"
+    return {**headers, **(extra or {})}
 
 
 def select(table: str, params: dict):
