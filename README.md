@@ -107,7 +107,7 @@ from anything the browser sends back. Preview mode downloads
 
 ## Physician accounts (Phase 1)
 
-`account.html` lets a physician sign in with an emailed link (Supabase Auth),
+`account.html` (served at `/physicians`; `/account.html` redirects there) lets a physician sign in with an emailed link (Supabase Auth),
 claim their NPI, set job preferences, run their own verification (3 per day)
 and download their report. `api/account.py` checks the Supabase access token on
 every request and only reads or writes that physician's rows; `src/supa.py`
@@ -120,7 +120,8 @@ job type) filter and re-rank matches (`src/prefs.py`).
 Setup:
 1. Create a Supabase project and run `supabase/schema.sql` in its SQL Editor.
 2. Authentication -> URL Configuration: Site URL `https://credentialai.co`,
-   redirect URL `https://credentialai.co/account.html`.
+   redirect URL `https://credentialai.co/account.html` (it forwards to
+   `/physicians` with the sign-in token intact).
 3. In Vercel, set `SUPABASE_URL`, `SUPABASE_ANON_KEY` and
    `SUPABASE_SERVICE_ROLE_KEY` (Production), then redeploy. Without them the
    page shows "Physician accounts open soon".
