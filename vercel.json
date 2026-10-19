@@ -1,0 +1,8 @@
+{
+  "redirects": [
+    { "source": "/account.html", "destination": "/physicians", "permanent": true }
+  ],
+  "rewrites": [
+    { "source": "/physicians", "destination": "/account.html" }
+  ]
+}

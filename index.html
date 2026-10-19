@@ -119,6 +119,12 @@
   .phys-msg { margin: 0.9rem 0 0; font-size: 0.95rem; color: var(--accent); }
   .phys-msg.err { color: var(--danger); }
   .phys-foot { margin: 1rem 0 0; font-size: 0.9rem; color: var(--muted); }
+  .phys-welcome h3 { margin: 0 0 0.6rem; font-size: 1.35rem; color: var(--heading); }
+  .phys-welcome .phys-status { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin: 0 0 1.3rem; }
+  .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; border: 1px solid var(--border-strong); color: var(--muted); }
+  .badge.go { color: var(--accent); background: var(--accent-dim); border-color: #00d4aa55; }
+  .badge.review { color: var(--warn); background: var(--warn-dim); border-color: #edb20055; }
+  .badge.nogo { color: var(--danger); background: var(--danger-dim); border-color: #fb2c3655; }
   .phys-foot a { color: #fff; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
   .panel-label { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted-2); margin-bottom: 1.2rem; }
   .field { margin-bottom: 0.9rem; }
@@ -346,7 +352,7 @@
       <a href="#credentialing">Credentialing</a>
       <a href="#matching">AI Matching</a>
       <a href="#how">How it works</a>
-      <a href="#physicians">For physicians</a>
+      <a href="#physicians" id="navPhys">For physicians</a>
     </div>
     <div class="nav-right">
       <a class="nav-cta" href="#verify">Try the live demo</a>
@@ -426,6 +432,8 @@
         <div id="result"></div>
         </div>
         <div id="panePhysicians" role="tabpanel" aria-labelledby="tabPhysicians" hidden>
+          <div class="phys-welcome" id="physWelcome" hidden></div>
+          <div id="physSignUp">
           <p class="tab-hint">See who's hiring for you.</p>
           <p class="panel-label">Your free physician account</p>
           <ul class="value-list phys-list">
@@ -438,7 +446,8 @@
             <button class="run" type="submit" id="physBtn">Email me a sign-in link</button>
           </form>
           <p class="phys-msg" id="physMsg" hidden></p>
-          <p class="phys-foot">Already signed in? <a href="account.html">Go to your account →</a></p>
+          <p class="phys-foot">Already signed in? <a href="/physicians">Go to your jobs →</a></p>
+          </div>
         </div>
       </div>
     </div>
@@ -572,7 +581,7 @@
           <li>See facilities that fit your location and specialty</li>
           <li>Every decision shows the records behind it</li>
         </ul>
-        <a class="btn-ghost" href="account.html">Get verified</a>
+        <a class="btn-ghost" href="/physicians">Get verified</a>
       </div>
     </div>
   </div>
@@ -772,6 +781,49 @@
       });
     });
   }
+  // Signed-in physicians see a welcome back card instead of the sign-up form.
+  function physEsc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function physHasSession() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) if (/^sb-.+-auth-token$/.test(localStorage.key(i))) return true;
+    } catch (e) {}
+    return false;
+  }
+  function physWelcome(d) {
+    var p = d.profile, latest = d.latest, html;
+    if (!p) {
+      html = '<h3>Welcome back</h3><p class="tab-hint">Claim your NPI to see who\'s hiring for you.</p>' +
+        '<a class="btn-primary" href="/physicians">Claim your NPI →</a>';
+    } else {
+      var v = latest ? (latest.verdict || '').toUpperCase() : '';
+      var badge = v.indexOf('GO') === 0 ? ['go', '✓ Verified'] : v.indexOf('NO') === 0 ? ['nogo', 'Not verified']
+        : v ? ['review', 'Needs review'] : ['', 'Not checked yet'];
+      var hiring = (latest && latest.matches || []).filter(function (m) { return m.openings && m.openings.count; }).length;
+      var jobs = !latest ? 'Your jobs are ready to find'
+        : hiring ? hiring + (hiring === 1 ? ' employer' : ' employers') + ' hiring for you' : 'No matching openings yet';
+      html = '<h3>Welcome back, ' + physEsc(p.first_name) + '</h3>' +
+        '<div class="phys-status"><span class="badge ' + badge[0] + '">' + badge[1] + '</span><span class="tab-hint" style="margin:0">' + jobs + '</span></div>' +
+        '<a class="btn-primary" href="/physicians">Go to your jobs →</a>';
+    }
+    var el = document.getElementById('physWelcome');
+    el.innerHTML = html; el.hidden = false;
+    document.getElementById('physSignUp').hidden = true;
+    var nav = document.getElementById('navPhys');
+    nav.textContent = 'My jobs'; nav.href = '/physicians';
+    placePanel();
+  }
+  if (physHasSession()) {
+    physSupabase().then(function (client) { return client.auth.getSession(); }).then(function (r) {
+      var t = r.data.session && r.data.session.access_token;
+      if (!t) return null;
+      return fetch('/api/account', { headers: { Authorization: 'Bearer ' + t } }).then(function (res) { return res.json(); });
+    }).then(function (d) { if (d && d.user) physWelcome(d); }).catch(function () {});
+  }
+
   document.getElementById('physForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var btn = document.getElementById('physBtn');
