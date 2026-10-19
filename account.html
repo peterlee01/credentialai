@@ -67,6 +67,13 @@
   .check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 1rem 0; font-size: 0.95rem; }
   .check input { margin-top: 0.35rem; accent-color: var(--accent); }
   .profile-line b { color: var(--heading); }
+  .profile-panel { padding: 1.2rem 1.6rem; }
+  .profile-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .profile-top .profile-line { margin: 0; }
+  .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; border: 1px solid var(--border-strong); color: var(--muted); }
+  .badge.go { color: var(--accent); background: var(--accent-dim); border-color: #00d4aa55; }
+  .badge.review { color: var(--warn); background: var(--warn-dim); border-color: #edb20055; }
+  .badge.nogo { color: var(--danger); background: var(--danger-dim); border-color: #fb2c3655; }
   /* Result cards (same design as the home page results) */
   .mock { background: #0a0b0d; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 1.4rem; margin-top: 1rem; }
   .mock.t-cred { border-color: var(--accent); } .mock.t-match { border-color: var(--match); }
@@ -119,8 +126,8 @@
 
 <main class="wrap">
   <p class="eyebrow">For physicians</p>
-  <h1>Get verified. See who's hiring.</h1>
-  <p class="muted">Check your own identity, sanctions and license against primary sources, download your verification report, and see employers near you hiring for your profession.</p>
+  <h1>See who's hiring for you.</h1>
+  <p class="muted">Open roles near you, matched to your setting, pay and schedule, with a verified profile employers can trust.</p>
 
   <!-- Accounts not set up on the server yet -->
   <section class="panel hidden" id="viewOff">
@@ -175,10 +182,15 @@
 
   <!-- Signed in with a profile -->
   <section class="hidden" id="viewDash">
+    <div class="panel profile-panel">
+      <div class="profile-top">
+        <p class="profile-line" id="profileLine"></p>
+        <span class="badge" id="verifiedBadge"></span>
+      </div>
+    </div>
+
     <div class="panel">
-      <h2>Your profile</h2>
-      <p class="profile-line" id="profileLine"></p>
-      <h2 style="margin-top:1.4rem">Job preferences</h2>
+      <h2>Jobs for you</h2>
       <form id="prefsForm">
         <div class="row3">
           <div class="field"><label for="setting">Setting</label>
@@ -187,16 +199,19 @@
           <div class="field"><label for="employment">Job type</label>
             <select id="employment"><option value="">Any</option><option value="full-time">Full-time</option><option value="part-time">Part-time</option></select></div>
         </div>
-        <div class="actions"><button class="btn-ghost" type="submit" id="prefsBtn">Save preferences</button><span class="ok-msg hidden" id="prefsSaved">Saved</span></div>
+        <div class="actions">
+          <button class="btn-primary" type="submit" id="updateBtn">Save and update my jobs</button>
+          <span class="note" id="runsLeft"></span>
+        </div>
       </form>
+      <p class="error hidden" id="verifyError"></p>
+      <div id="jobsResult"></div>
     </div>
 
     <div class="panel">
-      <h2>Your verification</h2>
-      <p class="note" id="runsLeft"></p>
-      <div class="actions"><button class="btn-primary" type="button" id="verifyBtn">Run my verification</button></div>
-      <p class="error hidden" id="verifyError"></p>
-      <div id="result"></div>
+      <h2>Your verified profile</h2>
+      <p class="note">Identity, sanctions and license, checked against primary sources each time your jobs update. Send the PDF to recruiters so they don't have to start from scratch.</p>
+      <div id="credResult"></div>
     </div>
 
     <div class="actions" style="margin-top:2rem">
@@ -249,11 +264,11 @@
     return '<div class="mock-head"><div class="mock-person"><span class="avatar">' + esc(person.initials) + '</span>' +
       '<div><b>' + esc(person.name) + '</b><small>' + esc(person.subtitle) + '</small></div></div></div>';
   }
-  function renderResult(data, reportFromServer) {
+  function renderCred(data) {
     var lines = (data.verdict_text || '').trim().split('\n');
     var s = data.summary || {};
     var person = s.person || { name: '', initials: '', subtitle: '' };
-    var html = '<div class="mock t-cred">' + head(person) +
+    $('credResult').innerHTML = '<div class="mock t-cred">' + head(person) +
       (s.checks || []).map(function (c) {
         return '<div class="mock-row"><div class="l"><b>' + esc(c.label) + '</b><small>' + esc(c.source) + '</small></div>' +
           '<span class="chip ' + esc(c.tone) + '">' + esc(c.status) + '</span></div>';
@@ -261,27 +276,48 @@
       '<div class="mock-verdict ' + verdictClass(data.verdict_text) + '"><b>' + esc(lines[0]) + '</b><small>' +
       (s.checks ? esc(s.checks_clear + ' of 3 checks clear, each cited') : '') + '</small></div>' +
       (lines.length > 1 ? '<p class="mock-explain">' + esc(lines.slice(1).join(' ').trim()) + '</p>' : '') +
-      (reportFromServer ? '<div class="actions" style="margin-top:1rem"><button class="btn-ghost" type="button" id="reportBtn">Download verification report (PDF)</button></div>' : '') +
+      '<div class="actions" style="margin-top:1rem"><button class="btn-ghost" type="button" id="reportBtn">Download your verified profile (PDF)</button></div>' +
+      (data.created_at ? '<p class="note" style="margin:0.8rem 0 0">Checked ' + esc(new Date(data.created_at).toLocaleString()) + '</p>' : '') +
       '</div>';
-    var matches = data.facility_matches || data.matches;
-    if (matches && matches.length) {
-      html += '<div class="mock t-match"><p class="result-heading">Employers hiring for you</p>' +
-        matches.map(function (m, i) {
-          var meta = [m.city + ', ' + m.state, m.hospital_type, m.cms_rating ? 'Rated ' + m.cms_rating + ' of 5' : ''].filter(Boolean).join(' · ');
-          var o = m.openings;
-          var jobs = o && o.count ? '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
-            o.listings.map(function (j) {
-              return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
-                (j.pay ? '<span class="job-pay">' + esc(j.pay) + '</span>' : '') + '</li>';
-            }).join('') + '</ul>' : '';
-          return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' + jobs + '</div>' +
-            (m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '') + '</div>';
-        }).join('') + '</div>';
-    }
-    $('result').innerHTML = html;
-    var btn = $('reportBtn');
-    if (btn) btn.addEventListener('click', function () { downloadReport(reportFromServer); });
+    $('reportBtn').addEventListener('click', function () {
+      if (data.report) { downloadReport(data.report); return; }
+      var btn = $('reportBtn'); btn.disabled = true;
+      api('POST', { action: 'report' }).then(function (r) {
+        btn.disabled = false;
+        if (r.status === 200) downloadReport(r.data.report); else alert(r.data.error || 'Could not create the report.');
+      });
+    });
+    setBadge(data.verdict_text, data.created_at);
   }
+  function renderJobs(data) {
+    var matches = data.facility_matches || data.matches;
+    if (!matches || !matches.length) {
+      var v = verdictClass(data.verdict_text);
+      $('jobsResult').innerHTML = '<p class="note" style="margin-top:1rem">' + (v === 'go'
+        ? 'No open roles matched your preferences right now. Try widening them, or check back tomorrow.'
+        : 'Jobs appear once your profile is verified. See "Your verified profile" below for what needs attention.') + '</p>';
+      return;
+    }
+    $('jobsResult').innerHTML = '<div class="mock t-match">' +
+      matches.map(function (m, i) {
+        var meta = [m.city + ', ' + m.state, m.hospital_type, m.cms_rating ? 'Rated ' + m.cms_rating + ' of 5' : ''].filter(Boolean).join(' · ');
+        var o = m.openings;
+        var jobs = o && o.count ? '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
+          o.listings.map(function (j) {
+            return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
+              (j.pay ? '<span class="job-pay">' + esc(j.pay) + '</span>' : '') + '</li>';
+          }).join('') + '</ul>' : '';
+        return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' + jobs + '</div>' +
+          (m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '') + '</div>';
+      }).join('') + '</div>';
+  }
+  function setBadge(verdictText, when) {
+    var v = verdictClass(verdictText), badge = $('verifiedBadge');
+    badge.className = 'badge ' + v;
+    badge.textContent = v === 'go' ? '✓ Verified' : v === 'review' ? 'Needs review' : v === 'nogo' ? 'Not verified' : 'Verifying…';
+    badge.title = when ? 'Last checked ' + new Date(when).toLocaleString() : '';
+  }
+  function showResult(data) { renderJobs(data); renderCred(data); }
   function downloadReport(report) {
     var bytes = atob(report.pdf_base64), buf = new Uint8Array(bytes.length);
     for (var i = 0; i < bytes.length; i++) buf[i] = bytes.charCodeAt(i);
@@ -292,6 +328,7 @@
   }
 
   // ---------- views ----------
+  var autoRan = false;
   function renderDash(d) {
     var p = d.profile;
     $('profileLine').innerHTML = '<b>' + esc(p.first_name + ' ' + p.last_name) + '</b> · NPI ' + esc(p.npi) + '<br>' +
@@ -301,18 +338,30 @@
     $('minPay').value = prefs.min_pay || '';
     $('employment').value = prefs.employment || '';
     setRunsLeft(d.runs_left);
-    if (d.latest && !$('result').innerHTML) {
-      renderResult(d.latest, null);
-      $('result').insertAdjacentHTML('afterbegin', '<p class="note" style="margin-top:1rem">Last run ' +
-        esc(new Date(d.latest.created_at).toLocaleString()) + '. Run again to download a fresh report.</p>');
-    }
     show('viewDash');
+    if (d.latest) {
+      if (!$('credResult').innerHTML) showResult(d.latest);
+    } else if (!autoRan && d.runs_left > 0) {
+      // First visit after claiming an NPI: verify and find jobs right away.
+      autoRan = true;
+      runUpdate();
+    } else {
+      setBadge('', null);
+    }
   }
   function setRunsLeft(n) {
     if (n == null) return;
-    $('runsLeft').textContent = n > 0 ? 'Checks your identity, sanctions and license, then finds employers hiring near you. ' +
-      n + ' of 3 runs left today.' : 'You have used your 3 runs for today. Come back tomorrow.';
-    $('verifyBtn').disabled = n <= 0;
+    $('runsLeft').textContent = n > 0 ? n + ' of 3 updates left today' : 'No updates left today. Come back tomorrow.';
+    $('updateBtn').disabled = n <= 0;
+  }
+  function runUpdate() {
+    msg('verifyError'); $('updateBtn').disabled = true; setBadge('', null);
+    $('jobsResult').innerHTML = '<p class="note" style="margin-top:1rem"><span class="spinner"></span>Verifying your profile and finding employers hiring for you. This can take up to a minute.</p>';
+    return api('POST', { action: 'verify' }).then(function (r) {
+      if (r.status !== 200) { $('jobsResult').innerHTML = ''; msg('verifyError', r.data.error); refresh(); return; }
+      showResult(Object.assign({ created_at: new Date().toISOString() }, r.data));
+      setRunsLeft(r.data.runs_left);
+    }).catch(function () { $('jobsResult').innerHTML = ''; msg('verifyError', 'Network error. Please try again.'); $('updateBtn').disabled = false; });
   }
   function refresh() {
     return api('GET').then(function (r) {
@@ -336,7 +385,7 @@
         $('signInSent').classList.remove('hidden');
       });
   });
-  $('signOut').addEventListener('click', function () { client.auth.signOut().then(function () { $('result').innerHTML = ''; refresh(); }); });
+  $('signOut').addEventListener('click', function () { client.auth.signOut().then(function () { $('jobsResult').innerHTML = ''; $('credResult').innerHTML = ''; autoRan = false; refresh(); }); });
 
   var lastSearch = null;
   $('searchForm').addEventListener('submit', function (e) {
@@ -370,27 +419,17 @@
     });
   });
   $('prefsForm').addEventListener('submit', function (e) {
-    e.preventDefault(); $('prefsBtn').disabled = true;
+    e.preventDefault(); $('updateBtn').disabled = true;
     api('POST', { action: 'prefs', prefs: { setting: $('setting').value, min_pay: $('minPay').value, employment: $('employment').value } })
       .then(function (r) {
-        $('prefsBtn').disabled = false;
-        $('prefsSaved').classList.toggle('hidden', r.status !== 200);
-        setTimeout(function () { $('prefsSaved').classList.add('hidden'); }, 2000);
+        if (r.status !== 200) { $('updateBtn').disabled = false; msg('verifyError', r.data.error); return; }
+        runUpdate();
       });
-  });
-  $('verifyBtn').addEventListener('click', function () {
-    msg('verifyError'); $('verifyBtn').disabled = true;
-    $('result').innerHTML = '<p class="note" style="margin-top:1rem"><span class="spinner"></span>Checking identity, sanctions and license, then finding employers hiring for you. This can take up to a minute.</p>';
-    api('POST', { action: 'verify' }).then(function (r) {
-      if (r.status !== 200) { $('result').innerHTML = ''; msg('verifyError', r.data.error); refresh(); return; }
-      renderResult(r.data, r.data.report);
-      setRunsLeft(r.data.runs_left);
-    }).catch(function () { $('result').innerHTML = ''; msg('verifyError', 'Network error. Please try again.'); $('verifyBtn').disabled = false; });
   });
   $('deleteBtn').addEventListener('click', function () {
     if (!confirm('Delete your account, profile and saved verifications? This cannot be undone.')) return;
     api('POST', { action: 'delete' }).then(function (r) {
-      if (r.status === 200) client.auth.signOut().then(function () { $('result').innerHTML = ''; refresh(); });
+      if (r.status === 200) client.auth.signOut().then(function () { $('jobsResult').innerHTML = ''; $('credResult').innerHTML = ''; autoRan = false; refresh(); });
       else alert(r.data.error || 'Could not delete the account.');
     });
   });

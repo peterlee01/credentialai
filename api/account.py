@@ -3,7 +3,7 @@
 GET  /api/account                      -> sign-in config, and (with a Supabase access token
                                           in "Authorization: Bearer ...") the profile, latest
                                           verification and runs left today
-POST /api/account {"action": ...}      -> npi_search | claim | prefs | verify | delete
+POST /api/account {"action": ...}      -> npi_search | claim | prefs | verify | report | delete
 
 Sign-in itself happens in the browser with Supabase Auth (email links); this
 function checks the token with Supabase on every request and only ever reads
@@ -114,6 +114,8 @@ class handler(BaseHTTPRequestHandler):
                 self._prefs(user, body)
             elif action == "verify":
                 self._verify(user)
+            elif action == "report":
+                self._report(user)
             elif action == "delete":
                 supa.delete_user(user["id"])
                 self._send(200, {"deleted": True})
@@ -182,6 +184,28 @@ class handler(BaseHTTPRequestHandler):
         profile = supa.update("profiles", {"id": user["id"]}, {
             "prefs": clean_prefs(body.get("prefs")), "updated_at": datetime.now(timezone.utc).isoformat()})
         self._send(200, {"profile": profile})
+
+    def _report(self, user):
+        """PDF of the latest saved verification, rebuilt on the server from the stored result,
+        so a physician can download it any time without using a run."""
+        profile = self._profile(user["id"])
+        latest = supa.select("verifications", {"user_id": f"eq.{user['id']}", "order": "created_at.desc",
+                                               "limit": "1", "select": "*"})
+        if not profile or not latest:
+            self._send(400, {"error": "Run your first verification to create a report."})
+            return
+        row = latest[0]
+        report_id = row.get("report_id") or uuid.uuid4().hex[:12].upper()
+        try:
+            generated_at = datetime.fromisoformat(str(row["created_at"]).replace("Z", "+00:00"))
+        except (KeyError, ValueError):
+            generated_at = None
+        pdf = build_report_pdf(profile["first_name"], profile["last_name"], profile["state"], profile["profession"],
+                               row.get("verdict_text"), row.get("summary"), row.get("matches"),
+                               report_id=report_id, generated_at=generated_at)
+        self._send(200, {"report": {"id": report_id,
+                                    "filename": f"credentialai-report-{profile['last_name']}-{report_id}.pdf".lower(),
+                                    "pdf_base64": base64.b64encode(pdf).decode("ascii")}})
 
     def _verify(self, user):
         profile = self._profile(user["id"])

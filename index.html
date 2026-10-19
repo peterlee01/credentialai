@@ -426,12 +426,12 @@
         <div id="result"></div>
         </div>
         <div id="panePhysicians" role="tabpanel" aria-labelledby="tabPhysicians" hidden>
-          <p class="tab-hint">Verify yourself and see who's hiring.</p>
+          <p class="tab-hint">See who's hiring for you.</p>
           <p class="panel-label">Your free physician account</p>
           <ul class="value-list phys-list">
-            <li>Check your own identity, sanctions and license by your NPI</li>
-            <li>Download your verification report (PDF)</li>
-            <li>See employers hiring near you, matched to your preferences and pay</li>
+            <li>Open roles near you, matched to your setting, pay and schedule</li>
+            <li>A verified profile employers can trust: identity, sanctions and license</li>
+            <li>Download your verified profile to send to recruiters</li>
           </ul>
           <form id="physForm">
             <div class="field"><label for="physEmail">Email</label><input id="physEmail" type="email" required autocomplete="email" /></div>
@@ -782,7 +782,7 @@
     }).then(function (r) {
       btn.disabled = false;
       if (r.error) { physMessage(r.error.message, true); return; }
-      physMessage('Check your inbox for the sign-in link. It opens your account, where you claim your NPI.');
+      physMessage('Check your inbox for the sign-in link. It opens your account, where you claim your NPI and see your jobs.');
     }).catch(function (err) {
       btn.disabled = false;
       physMessage(err && err.message === 'not-configured' ? 'Physician accounts open soon.' : 'Could not send the link. Please try again.', true);
