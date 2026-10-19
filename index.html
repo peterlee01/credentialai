@@ -110,6 +110,16 @@
   .panel-wrap { position: relative; }
   .panel-wrap::before { content: ""; position: absolute; inset: -1.25rem; background: linear-gradient(135deg, #00d4aa26, #4a9eff26); border-radius: var(--radius-xl); filter: blur(28px); opacity: .5; z-index: 0; }
   .panel { position: relative; z-index: 1; background: var(--panel); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 1.6rem; box-shadow: var(--glow-panel), 0 25px 50px -12px #000000b3; }
+  .demo-tabs { display: flex; gap: 0.3rem; padding: 0.3rem; margin-bottom: 0.9rem; background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; }
+  .demo-tab { flex: 1; padding: 0.6rem 0.8rem; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-family: var(--sans); font-size: 0.92rem; font-weight: 600; cursor: pointer; }
+  .demo-tab:hover { color: var(--heading); }
+  .demo-tab[aria-selected="true"] { background: var(--gradient-accent); color: #04120d; }
+  .tab-hint { margin: 0 0 1.1rem; font-size: 1rem; color: var(--text); }
+  .phys-list { --c: var(--accent); margin: 0 0 1.3rem; }
+  .phys-msg { margin: 0.9rem 0 0; font-size: 0.95rem; color: var(--accent); }
+  .phys-msg.err { color: var(--danger); }
+  .phys-foot { margin: 1rem 0 0; font-size: 0.9rem; color: var(--muted); }
+  .phys-foot a { color: #fff; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
   .panel-label { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted-2); margin-bottom: 1.2rem; }
   .field { margin-bottom: 0.9rem; }
   .field label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 0.35rem; }
@@ -336,6 +346,7 @@
       <a href="#credentialing">Credentialing</a>
       <a href="#matching">AI Matching</a>
       <a href="#how">How it works</a>
+      <a href="#physicians">For physicians</a>
     </div>
     <div class="nav-right">
       <a class="nav-cta" href="#verify">Try the live demo</a>
@@ -371,7 +382,13 @@
 
     <div class="panel-wrap" id="verify">
       <div class="panel">
-        <p class="panel-label">Run a real verification and match</p>
+        <div class="demo-tabs" role="tablist" aria-label="Who is checking">
+          <button class="demo-tab" role="tab" id="tabFacilities" aria-controls="paneFacilities" aria-selected="true" type="button">Facilities</button>
+          <button class="demo-tab" role="tab" id="tabPhysicians" aria-controls="panePhysicians" aria-selected="false" tabindex="-1" type="button">Physicians</button>
+        </div>
+        <div id="paneFacilities" role="tabpanel" aria-labelledby="tabFacilities">
+        <p class="tab-hint">For hospitals, staffing agencies and health plans. Check any clinician.</p>
+        <p class="panel-label">Run a verification and match</p>
         <form id="verifyForm">
           <div class="row2">
             <div class="field"><label for="fn">First name</label><input id="fn" required /></div>
@@ -407,6 +424,22 @@
           <button class="run" type="submit" id="runBtn">Run verification</button>
         </form>
         <div id="result"></div>
+        </div>
+        <div id="panePhysicians" role="tabpanel" aria-labelledby="tabPhysicians" hidden>
+          <p class="tab-hint">Verify yourself and see who's hiring.</p>
+          <p class="panel-label">Your free physician account</p>
+          <ul class="value-list phys-list">
+            <li>Check your own identity, sanctions and license by your NPI</li>
+            <li>Download your verification report (PDF)</li>
+            <li>See employers hiring near you, matched to your preferences and pay</li>
+          </ul>
+          <form id="physForm">
+            <div class="field"><label for="physEmail">Email</label><input id="physEmail" type="email" required autocomplete="email" /></div>
+            <button class="run" type="submit" id="physBtn">Email me a sign-in link</button>
+          </form>
+          <p class="phys-msg" id="physMsg" hidden></p>
+          <p class="phys-foot">Already signed in? <a href="account.html">Go to your account →</a></p>
+        </div>
       </div>
     </div>
   </header>
@@ -690,6 +723,71 @@
     }
     document.body.appendChild(a); a.click(); a.remove();
   }
+
+  // ---------- Facilities / Physicians tabs ----------
+  var tabs = { facilities: document.getElementById('tabFacilities'), physicians: document.getElementById('tabPhysicians') };
+  var panes = { facilities: document.getElementById('paneFacilities'), physicians: document.getElementById('panePhysicians') };
+  function selectTab(name, focus) {
+    Object.keys(tabs).forEach(function (k) {
+      var on = k === name;
+      tabs[k].setAttribute('aria-selected', on ? 'true' : 'false');
+      tabs[k].tabIndex = on ? 0 : -1;
+      panes[k].hidden = !on;
+    });
+    if (focus) tabs[name].focus();
+    placePanel();
+  }
+  Object.keys(tabs).forEach(function (k) {
+    tabs[k].addEventListener('click', function () { selectTab(k); });
+    tabs[k].addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') selectTab(k === 'facilities' ? 'physicians' : 'facilities', true);
+    });
+  });
+  // #physicians opens the Physicians tab; #verify (the demo buttons) opens Facilities.
+  function routeHash() {
+    var hash = window.location.hash;
+    if (hash !== '#physicians' && hash !== '#verify') return;
+    selectTab(hash === '#physicians' ? 'physicians' : 'facilities');
+    document.getElementById('verify').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  window.addEventListener('hashchange', routeHash);
+  routeHash();
+
+  // Physician sign-in link, using the same Supabase project as account.html.
+  var physClient = null;
+  function physMessage(text, isError) {
+    var el = document.getElementById('physMsg');
+    el.textContent = text; el.hidden = !text; el.classList.toggle('err', !!isError);
+  }
+  function physSupabase() {
+    if (physClient) return Promise.resolve(physClient);
+    return fetch('/api/account').then(function (r) { return r.json(); }).then(function (cfg) {
+      if (!cfg.configured) throw new Error('not-configured');
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+        s.onload = function () { physClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key); resolve(physClient); };
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    });
+  }
+  document.getElementById('physForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = document.getElementById('physBtn');
+    btn.disabled = true; physMessage('');
+    physSupabase().then(function (client) {
+      return client.auth.signInWithOtp({ email: document.getElementById('physEmail').value.trim(),
+        options: { emailRedirectTo: window.location.origin + '/account.html' } });
+    }).then(function (r) {
+      btn.disabled = false;
+      if (r.error) { physMessage(r.error.message, true); return; }
+      physMessage('Check your inbox for the sign-in link. It opens your account, where you claim your NPI.');
+    }).catch(function (err) {
+      btn.disabled = false;
+      physMessage(err && err.message === 'not-configured' ? 'Physician accounts open soon.' : 'Could not send the link. Please try again.', true);
+    });
+  });
 
   function renderResult(html) {
     resultEl.innerHTML = html;
