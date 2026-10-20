@@ -1,0 +1,129 @@
+"""Backup license check through License Verify (licenseverificationapi.com), a paid
+API built from state board rosters, for states without a free public source.
+
+Only runs when LICENSE_VERIFY_API_KEY is set. The vendor's full reference is
+behind sign-in, so responses are read without relying on exact field names:
+the record list, name, status, expiration, license type and number are
+recognised by their keys. A response that can't be read comes back
+"unverified" with the keys it had, so the mapping can be fixed from one run.
+Results are cached per warm instance for a day to stay inside the free tier.
+"""
+
+import json
+import os
+import re
+import time
+
+import requests
+
+DEFAULT_URL = "https://licenseverificationapi.com/api/v1/verify"
+CACHE_TTL_SECONDS = 24 * 60 * 60
+_cache = {}
+
+# How the vendor names each profession; sent alongside the other search fields.
+_PROFESSIONS = {"physician": "physician", "psychologist": "psychologist",
+                "counselor": "counselor", "social worker": "social worker"}
+
+
+def configured() -> bool:
+    return bool(os.environ.get("LICENSE_VERIFY_API_KEY"))
+
+
+def _key(record: dict, *patterns) -> str:
+    for pattern in patterns:
+        for key in record:
+            if re.fullmatch(pattern, key.lower()):
+                return key
+    return ""
+
+
+def _words(value) -> list:
+    return re.findall(r"[a-z]+", str(value or "").lower())
+
+
+def _records(data) -> list:
+    """The license records in a response: a list under a usual key, or the object itself."""
+    if isinstance(data, list):
+        return [r for r in data if isinstance(r, dict)]
+    if not isinstance(data, dict):
+        return []
+    for key in ("results", "data", "licenses", "matches", "records", "items"):
+        value = data.get(key)
+        if isinstance(value, list):
+            return [r for r in value if isinstance(r, dict)]
+        if isinstance(value, dict):
+            return _records(value)
+    for key in ("license", "result", "record"):
+        if isinstance(data.get(key), dict):
+            return [data[key]]
+    return [data] if _key(data, r"status", r"license_?status") else []
+
+
+def _name_fits(record: dict, first: str, last: str) -> bool:
+    first_key, last_key = _key(record, r"first_?name"), _key(record, r"last_?name")
+    if last_key:
+        return (_words(record.get(last_key)) == _words(last)
+                and (not first_key or _words(record.get(first_key))[:1] == _words(first)[:1]))
+    name_key = _key(record, r"name", r"full_?name", r"licensee_?name", r"holder_?name")
+    if not name_key:
+        return None  # the record doesn't say whose license it is
+    words = _words(record.get(name_key))
+    return all(w in words for w in _words(last) + _words(first)[:1])
+
+
+def lookup(first_name: str, last_name: str, profession: str, state_code: str, license_number: str = ""):
+    """{"status": raw status or None, "records": [...], "note": ...} for one clinician, or a
+    dict with only "note" when the lookup couldn't run or be read."""
+    api_key = os.environ.get("LICENSE_VERIFY_API_KEY")
+    cache_key = (first_name.lower(), last_name.lower(), profession, state_code, license_number)
+    cached = _cache.get(cache_key)
+    if cached and time.time() - cached[0] < CACHE_TTL_SECONDS:
+        return cached[1]
+
+    params = {"state": state_code, "profession": _PROFESSIONS.get(profession, profession),
+              "first_name": first_name.strip(), "last_name": last_name.strip()}
+    if license_number:
+        params["license_number"] = license_number.strip()
+    try:
+        resp = requests.get(os.environ.get("LICENSE_VERIFY_URL") or DEFAULT_URL, params=params, timeout=20,
+                            headers={"Authorization": f"Bearer {api_key}", "Accept": "application/json"})
+        data = resp.json()
+    except (requests.RequestException, ValueError) as exc:
+        print(f"[license-vendor] request failed: {exc!r}")
+        return {"note": f"License Verify could not be reached ({exc.__class__.__name__})."}
+    if resp.status_code == 404:
+        out = {"records": []}
+    elif resp.status_code != 200:
+        message = data.get("error") or data.get("message") if isinstance(data, dict) else None
+        print(f"[license-vendor] HTTP {resp.status_code}: {json.dumps(data)[:300]}")
+        return {"note": f"License Verify returned an error ({resp.status_code}{': ' + str(message)[:80] if message else ''})."}
+    else:
+        records = _records(data)
+        if data and not records and not (isinstance(data, dict) and any(
+                isinstance(v, list) for v in data.values())):
+            keys = sorted(data) if isinstance(data, dict) else type(data).__name__
+            print(f"[license-vendor] unrecognised response: {json.dumps(data)[:500]}")
+            return {"note": f"License Verify's response couldn't be read automatically (fields: {keys})."}
+        out, unnamed = {"records": []}, 0
+        for record in records:
+            fits = _name_fits(record, first_name, last_name)
+            if fits is None and not license_number:
+                unnamed += 1
+                continue
+            if fits is False:
+                continue
+            status_key = _key(record, r"status", r"license_?status", r"standing")
+            out["records"].append({
+                "license_number": record.get(_key(record, r"license_?number", r"number", r"license_?no")),
+                "license_type": record.get(_key(record, r"license_?type", r"type", r"profession", r"credential")),
+                "status_text": str(record.get(status_key) or ""),
+                "expiration_date": str(record.get(_key(record, r"expir\w*", r"expires_?\w*", r"valid_?(until|to|through)"))
+                                       or "")[:10] or None,
+                "board": record.get(_key(record, r"source_?board", r"board", r"source", r"issuing_?\w*")),
+                "discipline_on_record": bool(record.get(_key(record, r"disciplin\w*", r"\w*actions?"))),
+            })
+        if unnamed and not out["records"]:
+            return {"note": "License Verify's records don't name the license holder, so they can't be "
+                            "matched to this person."}
+    _cache[cache_key] = (time.time(), out)
+    return out
