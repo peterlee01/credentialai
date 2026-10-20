@@ -31,8 +31,8 @@ from src.summary import build_summary  # noqa: E402
 from src.report import build_report_pdf  # noqa: E402
 
 ALLOWED_STATES = {
-    "Arizona", "California", "Colorado", "Florida", "Georgia",
-    "Illinois", "New York", "Ohio", "Texas", "Virginia",
+    "Arizona", "California", "Colorado", "Connecticut", "Florida", "Georgia",
+    "Illinois", "New York", "Ohio", "Texas", "Virginia", "Washington",
 }
 ALLOWED_PROFESSIONS = {"physician", "psychologist", "counselor", "social worker"}
 

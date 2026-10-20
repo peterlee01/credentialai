@@ -73,7 +73,7 @@ def build_summary(first_name: str, last_name: str, state: str, profession: str, 
         license_detail = "The license check did not run."
     else:
         license_status = _LICENSE_LABELS.get(license_.get("status"), ("Needs review", "warn"))
-        license_source = "Colorado DORA" if license_.get("source") else "State board"
+        license_source = license_.get("source_label") or ("Colorado DORA" if license_.get("source") else "State board")
         record = (license_.get("records") or [None])[0]
         if record and license_.get("match_count") == 1:
             parts = [f"License {record.get('license_number')} ({record.get('license_type')})",
@@ -96,7 +96,8 @@ def build_summary(first_name: str, last_name: str, state: str, profession: str, 
          "detail": sanction_detail, "source_url": "https://oig.hhs.gov/exclusions"},
         {"label": "License", "source": license_source, "status": license_status[0], "tone": license_status[1],
          "detail": license_detail,
-         "source_url": "https://data.colorado.gov/resource/7s5z-vewr" if license_source == "Colorado DORA" else None},
+         "source_url": (license_ or {}).get("source_url") or (
+             "https://data.colorado.gov/resource/7s5z-vewr" if license_source == "Colorado DORA" else None)},
     ]
     return {
         "person": {
