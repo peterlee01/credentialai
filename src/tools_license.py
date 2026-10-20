@@ -8,9 +8,10 @@
   https://data.ct.gov/resource/ngch-56tr.json (refreshed daily)
 
 All three are Socrata open-data APIs with no key required. There is no free
-public license API that covers every state, so any other state comes back
-"unverified", which the coordinator routes to NEEDS REVIEW for a person to
-confirm — no license status is ever invented.
+public license API that covers every state. Other states go to License Verify,
+a paid roster API (src/license_vendor.py), when LICENSE_VERIFY_API_KEY is set;
+otherwise they come back "unverified", which the coordinator routes to NEEDS
+REVIEW for a person to confirm — no license status is ever invented.
 """
 
 import json
@@ -18,6 +19,9 @@ import re
 
 import requests
 from anthropic import beta_tool
+
+from . import license_vendor
+from .tools_facilities import STATE_CODES
 
 CO_LICENSE_ENDPOINT = "https://data.colorado.gov/resource/7s5z-vewr.json"
 CO_SOURCE = "Colorado DORA professional license records (live, public)"
@@ -105,7 +109,7 @@ def _result(state, profession, status, **extra) -> str:
 
 def _state_code(state: str) -> str:
     state = state.strip()
-    return _STATE_NAMES.get(state.lower(), state.upper())
+    return _STATE_NAMES.get(state.lower()) or STATE_CODES.get(state.title(), state.upper())
 
 
 def _column(row: dict, *patterns) -> str:
@@ -205,6 +209,28 @@ def _check_socrata(code: str, first_name, last_name, profession, state, license_
     return result(_normalize_status(records[0]["status_text"]), match_count=1, records=records)
 
 
+def _check_vendor(code: str, first_name, last_name, profession, state, license_number) -> str:
+    found = license_vendor.lookup(first_name, last_name, profession, code, license_number)
+
+    def result(status, **extra):
+        return json.dumps({"source": "License Verify API (state board rosters)", "source_label": "License Verify",
+                           "source_url": "https://licenseverificationapi.com", "state": state,
+                           "profession": profession, "status": status, **extra})
+
+    if "records" not in found:
+        return result("unverified", note=found["note"] + " A person needs to confirm license status.")
+    records = found["records"]
+    wanted_digits = _digits(license_number)
+    if wanted_digits and len(records) > 1:
+        exact = [r for r in records if _digits(str(r.get("license_number") or "")) == wanted_digits]
+        records = exact or records
+    if not records:
+        return result("not_found", match_count=0)
+    if len(records) > 1:
+        return result("ambiguous", match_count=len(records), records=records[:5])
+    return result(_normalize_status(records[0]["status_text"]), match_count=1, records=records)
+
+
 @beta_tool
 def check_license_status(first_name: str, last_name: str, profession: str, state: str,
                          license_number: str = "") -> str:
@@ -221,6 +247,8 @@ def check_license_status(first_name: str, last_name: str, profession: str, state
     code = _state_code(state)
     if code in SOCRATA_STATES:
         return _check_socrata(code, first_name, last_name, profession, state, license_number)
+    if code != "CO" and license_vendor.configured():
+        return _check_vendor(code, first_name, last_name, profession, state, license_number)
     if code != "CO":
         return json.dumps({
             "source": None,
