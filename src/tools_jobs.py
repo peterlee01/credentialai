@@ -84,25 +84,29 @@ def _search(params: dict, label: str, notes: list):
     return data.get("jobs_results", []), (data.get("serpapi_pagination") or {}).get("next_page_token")
 
 
-def city_listings(city: str, state: str, profession: str, notes: list = None):
-    """Open roles for a profession in one city (up to PAGES pages), or None if the lookup can't run."""
+def city_listings(city: str, state: str, profession: str, notes: list = None, variant: str = ""):
+    """Open roles for a profession in one city (up to PAGES pages), or None if the lookup can't run.
+    With no city, searches the whole state (pass the state's full name). `variant` narrows the
+    search to a kind of role, e.g. "locum tenens" or "per diem"."""
     notes = [] if notes is None else notes
     api_key = os.environ.get("SERPAPI_KEY")
     if not api_key:
         notes.append("SERPAPI_KEY is not set")
         return None
 
-    key = (city.lower(), state.lower(), profession.lower())
+    key = (city.lower(), state.lower(), profession.lower(), variant)
     cached = _cache.get(key)
     if cached and time.time() - cached[0] < CACHE_TTL_SECONDS:
-        notes.append(f"{profession} in {city}, {state}: {len(cached[1])} listings (cached) from {_employers(cached[1])}")
+        notes.append(f"{variant} {profession} in {city or state}: {len(cached[1])} listings (cached) "
+                     f"from {_employers(cached[1])}".strip())
         return cached[1]
 
     # The place goes in the query: SerpApi's location parameter only accepts names from its own
     # canonical list and rejects others (e.g. "Denver, CO") with an error.
-    params = {"engine": "google_jobs", "q": f"{profession} jobs in {city}, {state}",
+    place = f"{city}, {state}" if city else state
+    params = {"engine": "google_jobs", "q": f"{variant} {profession} jobs in {place}".strip(),
               "hl": "en", "gl": "us", "api_key": api_key}
-    label = f"{profession} in {city}, {state}"
+    label = f"{variant} {profession} in {place}".strip()
     jobs, next_token = _search(params, label, notes)
     if jobs is None:
         return None
@@ -169,6 +173,13 @@ def _parent_owns(facility_name: str, company_name: str) -> bool:
 
 def _job_city(job: dict) -> str:
     return (job.get("location") or "").split(",")[0].strip().lower()
+
+
+def _job_state(job: dict) -> str:
+    """Two-letter state from a listing's location such as "Seattle, WA", or ""."""
+    parts = [p.strip() for p in (job.get("location") or "").split(",")]
+    state = parts[1].split()[0] if len(parts) > 1 and parts[1] else ""
+    return state.upper() if len(state) == 2 and state.isalpha() else ""
 
 
 _PAY_PERIOD = r"a year|an hour|a month|a week|per (year|hour|month|week)|/\s*(yr|hr|year|hour)"

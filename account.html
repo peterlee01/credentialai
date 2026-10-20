@@ -159,8 +159,8 @@
       <div class="row2">
         <div class="field"><label for="state">State</label>
           <select id="state" required>
-            <option>Arizona</option><option>California</option><option selected>Colorado</option><option>Florida</option><option>Georgia</option>
-            <option>Illinois</option><option>New York</option><option>Ohio</option><option>Texas</option><option>Virginia</option>
+            <option>Arizona</option><option>California</option><option selected>Colorado</option><option>Connecticut</option><option>Florida</option><option>Georgia</option>
+            <option>Illinois</option><option>New York</option><option>Ohio</option><option>Texas</option><option>Virginia</option><option>Washington</option>
           </select></div>
         <div class="field"><label for="profession">Profession</label>
           <select id="profession" required>
@@ -198,6 +198,15 @@
           <div class="field"><label for="minPay">Minimum pay (per year)</label><input id="minPay" type="number" min="0" step="5000" placeholder="e.g. 120000" /></div>
           <div class="field"><label for="employment">Job type</label>
             <select id="employment"><option value="">Any</option><option value="full-time">Full-time</option><option value="part-time">Part-time</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label for="contract">Contract</label>
+            <select id="contract"><option value="">Any</option><option value="employee">Employee (W-2)</option><option value="contractor">Contractor (1099)</option><option value="per-diem">Per diem</option><option value="locums">Locums</option></select></div>
+          <div class="field"><label for="area">Where</label>
+            <select id="area"><option value="">Near me</option><option value="state" id="areaState">Anywhere in my state</option></select></div>
+          <div class="field"><label for="alsoCity1">Also open to</label>
+            <input id="alsoCity1" type="text" placeholder="City, ST" maxlength="45" autocomplete="off" />
+            <input id="alsoCity2" type="text" placeholder="City, ST" maxlength="45" autocomplete="off" style="margin-top:0.5rem" /></div>
         </div>
         <div class="actions">
           <button class="btn-primary" type="submit" id="updateBtn">Save and update my jobs</button>
@@ -305,7 +314,9 @@
         var jobs = o && o.count ? '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
           o.listings.map(function (j) {
             return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
-              (j.pay ? '<span class="job-pay">' + esc(j.pay) + '</span>' : '') + '</li>';
+              (j.pay || (j.terms || []).length ? '<span class="job-pay">' + esc([j.pay].concat((j.terms || []).map(function (t) {
+                return { contractor: 'Contract', 'per-diem': 'Per diem', locums: 'Locums' }[t] || t;
+              })).filter(Boolean).join(' · ')) + '</span>' : '') + '</li>';
           }).join('') + '</ul>' : '';
         return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' + jobs + '</div>' +
           (m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '') + '</div>';
@@ -337,6 +348,12 @@
     $('setting').value = prefs.setting || '';
     $('minPay').value = prefs.min_pay || '';
     $('employment').value = prefs.employment || '';
+    $('contract').value = prefs.contract || '';
+    $('area').value = prefs.area || '';
+    $('areaState').textContent = 'Anywhere in ' + (p.state || 'my state');
+    var also = prefs.also_cities || [];
+    $('alsoCity1').value = also[0] || '';
+    $('alsoCity2').value = also[1] || '';
     setRunsLeft(d.runs_left);
     show('viewDash');
     if (d.latest) {
@@ -420,7 +437,12 @@
   });
   $('prefsForm').addEventListener('submit', function (e) {
     e.preventDefault(); $('updateBtn').disabled = true;
-    api('POST', { action: 'prefs', prefs: { setting: $('setting').value, min_pay: $('minPay').value, employment: $('employment').value } })
+    var also = [$('alsoCity1').value, $('alsoCity2').value].map(function (v) { return v.trim(); }).filter(Boolean);
+    var bad = also.filter(function (v) { return !/^[A-Za-z][A-Za-z .'-]*,\s*[A-Za-z]{2}$/.test(v); });
+    if (bad.length) { $('updateBtn').disabled = false; msg('verifyError', 'Enter cities as City, ST, for example Seattle, WA.'); return; }
+    msg('verifyError');
+    api('POST', { action: 'prefs', prefs: { setting: $('setting').value, min_pay: $('minPay').value, employment: $('employment').value,
+                                            contract: $('contract').value, area: $('area').value, also_cities: also } })
       .then(function (r) {
         if (r.status !== 200) { $('updateBtn').disabled = false; msg('verifyError', r.data.error); return; }
         runUpdate();

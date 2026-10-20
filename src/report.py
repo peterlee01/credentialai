@@ -12,8 +12,8 @@ from fpdf import FPDF
 
 _DISCLAIMER = (
     "Generated automatically from public primary sources at the time shown. Identity: NPPES NPI Registry. "
-    "Sanctions: HHS-OIG List of Excluded Individuals/Entities. License: Colorado DORA public license records "
-    "(other states are routed to a person). This report supports, and does not replace, a credentialing "
+    "Sanctions: HHS-OIG List of Excluded Individuals/Entities. License: state board public license records "
+    "(Colorado, Washington, Connecticut; other states are routed to a person). This report supports, and does not replace, a credentialing "
     "committee's review."
 )
 _TONE_RGB = {"ok": (0, 140, 110), "warn": (170, 115, 0), "bad": (200, 30, 40)}

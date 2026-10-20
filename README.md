@@ -2,7 +2,7 @@
 
 An agentic credentialing verification assistant: a Claude-orchestrated coordinator that checks a
 clinician's identity (real NPPES NPI Registry), sanctions/exclusion status (real HHS-OIG LEIE),
-and license status (real Colorado DORA license records), then synthesizes a cited GO / NEEDS REVIEW /
+and license status (real state license records: Colorado, Washington, Connecticut), then synthesizes a cited GO / NEEDS REVIEW /
 NO-GO verdict.
 
 A portfolio project demonstrating real multi-agent orchestration — a coordinator directing
@@ -15,7 +15,7 @@ confidence-tiered, human-escalatable trust pattern driving every verdict.
 |---|---|
 | NPPES NPI Registry (identity) | **Real, live, public API** — no key required |
 | HHS-OIG LEIE (sanctions/exclusions) | **Real, live, public CSV** — downloaded and cached locally |
-| Colorado DORA license records (license status) | **Real, live, public API** ([data.colorado.gov `7s5z-vewr`](https://data.colorado.gov/resource/7s5z-vewr.json)) — no key required. Colorado only: no free public API covers all 50 state boards, so any other state returns `unverified` and the verdict is NEEDS REVIEW for a person to confirm. No license status is ever invented. |
+| State license records (license status) | **Real, live, public APIs**, no key required: Colorado DORA ([`7s5z-vewr`](https://data.colorado.gov/resource/7s5z-vewr.json)), Washington DOH ([`qxh8-f4bd`](https://data.wa.gov/resource/qxh8-f4bd.json)) and Connecticut eLicensing ([`ngch-56tr`](https://data.ct.gov/resource/ngch-56tr.json)). Washington and Connecticut columns are recognised by name, and a source that can't be read returns `unverified`. No free public API covers all 50 state boards, so any other state returns `unverified` and the verdict is NEEDS REVIEW for a person to confirm. No license status is ever invented. |
 | CMS Hospital General Information (hospital details) | **Real, live, public API** — no key required. Hospital type and rating for matched hospitals. |
 | Google Jobs via SerpApi (open roles) | **Real, live** — needs `SERPAPI_KEY` (free tier: 100 searches/month). Drives matching; every match has job links. |
 
@@ -115,7 +115,8 @@ talks to Supabase's REST API with the service role key, which never leaves the
 server. Claims are self-attested in Phase 1 (checkbox plus a registry check
 that the NPI carries the physician's last name and profession, and one account
 per NPI); no profile is shown to employers. Preferences (setting, minimum pay,
-job type) filter and re-rank matches (`src/prefs.py`).
+job type, contract type) filter and re-rank matches; area (near me or the whole state) and up to
+two extra cities widen the job searches (`src/prefs.py`).
 
 Setup:
 1. Create a Supabase project and run `supabase/schema.sql` in its SQL Editor.

@@ -27,7 +27,7 @@ from src.coordinator import run_verification  # noqa: E402
 from src.prefs import clean as clean_prefs  # noqa: E402
 from src.report import build_report_pdf  # noqa: E402
 from src.summary import build_summary  # noqa: E402
-from src.tools_facilities import STATE_CODES, build_facility_matches  # noqa: E402
+from src.tools_facilities import SEARCH_PREFS, STATE_CODES, build_facility_matches  # noqa: E402
 from src.tools_npi import get_npi_identity  # noqa: E402
 
 ALLOWED_PROFESSIONS = {"physician", "psychologist", "counselor", "social worker"}
@@ -218,7 +218,11 @@ class handler(BaseHTTPRequestHandler):
             return
         first, last, state, profession = (profile["first_name"], profile["last_name"], profile["state"],
                                           profile["profession"])
-        verdict_text, tool_calls = run_verification(first, last, state, profession, npi=profile["npi"])
+        prefs_token = SEARCH_PREFS.set(clean_prefs(profile.get("prefs")))
+        try:
+            verdict_text, tool_calls = run_verification(first, last, state, profession, npi=profile["npi"])
+        finally:
+            SEARCH_PREFS.reset(prefs_token)
         summary = build_summary(first, last, state, profession, tool_calls)
         notes = []
         try:

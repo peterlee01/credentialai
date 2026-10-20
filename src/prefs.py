@@ -1,15 +1,23 @@
-"""Physician preferences applied to job matches: setting, minimum pay and job type.
+"""Physician preferences applied to job matches: setting, minimum pay, job type,
+contract type, and where to look.
 
 Preferences come from a signed-in physician's profile, e.g.
-{"setting": "outpatient", "min_pay": 120000, "employment": "full-time"}.
+{"setting": "outpatient", "min_pay": 120000, "employment": "full-time",
+ "contract": "locums", "area": "state", "also_cities": ["Seattle, WA"]}.
 A listing only drops out when it clearly fails a preference; listings that
-don't say (no pay given, no schedule given) are kept.
+don't say (no pay given, no schedule given) are kept. The exception is a
+contractor, per diem or locums preference: those roles say so in the posting,
+so a listing has to show it. Area and extra cities widen the job searches
+(src/tools_facilities.py).
 """
 
 import re
 
 SETTINGS = ("any", "inpatient", "outpatient", "telehealth")
 EMPLOYMENT = ("any", "full-time", "part-time")
+CONTRACTS = ("any", "employee", "contractor", "per-diem", "locums")
+AREAS = ("near", "state")
+MAX_ALSO_CITIES = 2
 HOURS_PER_YEAR = 2080
 
 _SETTING_WORDS = {
@@ -33,7 +41,43 @@ def clean(prefs) -> dict:
         min_pay = 0
     if 0 < min_pay < 2_000_000:
         out["min_pay"] = min_pay
+    if prefs.get("contract") in CONTRACTS[1:]:
+        out["contract"] = prefs["contract"]
+    if prefs.get("area") in AREAS[1:]:
+        out["area"] = prefs["area"]
+    cities = []
+    for raw in prefs.get("also_cities") or []:
+        city = parse_city(raw)
+        if city and city not in cities:
+            cities.append(city)
+    if cities:
+        out["also_cities"] = ["%s, %s" % c for c in cities[:MAX_ALSO_CITIES]]
     return out
+
+
+def parse_city(raw):
+    """("Seattle", "WA") from "seattle, wa", or None if it isn't "City, ST"."""
+    match = re.fullmatch(r"\s*([A-Za-z][A-Za-z .'-]{0,40}?)\s*,\s*([A-Za-z]{2})\s*", str(raw or ""))
+    if not match:
+        return None
+    return " ".join(w.capitalize() for w in match.group(1).split()), match.group(2).upper()
+
+
+def contract_terms(job: dict) -> list:
+    """How a listing is contracted, from Google Jobs' schedule type, the title and the description:
+    any of "contractor", "per-diem", "locums"."""
+    schedule = ((job.get("detected_extensions") or {}).get("schedule_type") or "").lower()
+    text = " ".join([schedule, job.get("title") or "", (job.get("description") or "")[:3000]]).lower()
+    terms = []
+    if "contract" in schedule or re.search(r"\b1099\b|independent contractor|\bcontract (position|role|basis|opportunity)", text):
+        terms.append("contractor")
+    if re.search(r"per[ -]diem|\bprn\b", text):
+        terms.append("per-diem")
+    if re.search(r"locum", text):
+        terms.append("locums")
+    if "locums" in terms and "contractor" in terms:
+        terms.remove("contractor")  # locums is itself a contract role
+    return terms
 
 
 def pay_annual_min(pay: str):
@@ -67,6 +111,14 @@ def listing_fits(candidate: dict, listing: dict, prefs: dict) -> bool:
         return False
     schedule = (listing.get("schedule") or "").lower()
     if prefs.get("employment") and schedule and prefs["employment"] not in schedule:
+        return False
+    terms = listing.get("terms") or []
+    contract = prefs.get("contract")
+    if contract == "employee" and terms:
+        return False
+    if contract == "contractor" and not terms:
+        return False
+    if contract in ("per-diem", "locums") and contract not in terms:
         return False
     if prefs.get("setting") == "telehealth" and not (
             listing.get("remote") or re.search(_SETTING_WORDS["telehealth"], _setting_text(candidate, listing))):

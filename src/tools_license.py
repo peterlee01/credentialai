@@ -1,23 +1,60 @@
-"""License status check against Colorado's real, free, public license records.
+"""License status check against states' real, free, public license records.
 
-Queries the "Professional and Occupational Licenses in Colorado" dataset that
-the Colorado Department of Regulatory Agencies (DORA) publishes on the
-Colorado Information Marketplace — no API key required. See
-https://data.colorado.gov/resource/7s5z-vewr.json
+- Colorado: "Professional and Occupational Licenses in Colorado" from the
+  Department of Regulatory Agencies (DORA), https://data.colorado.gov/resource/7s5z-vewr.json
+- Washington: "Health Care Provider Credential Data" from the Department of
+  Health, https://data.wa.gov/resource/qxh8-f4bd.json (refreshed daily)
+- Connecticut: "State Licenses and Credentials" from the eLicensing system,
+  https://data.ct.gov/resource/ngch-56tr.json (refreshed daily)
 
-There is no free public license API that covers every state, so only Colorado
-is checked live. Any other state comes back "unverified", which the
-coordinator routes to NEEDS REVIEW for a person to confirm — no license
-status is ever invented.
+All three are Socrata open-data APIs with no key required. There is no free
+public license API that covers every state, so any other state comes back
+"unverified", which the coordinator routes to NEEDS REVIEW for a person to
+confirm — no license status is ever invented.
 """
 
 import json
+import re
 
 import requests
 from anthropic import beta_tool
 
 CO_LICENSE_ENDPOINT = "https://data.colorado.gov/resource/7s5z-vewr.json"
 CO_SOURCE = "Colorado DORA professional license records (live, public)"
+
+# Washington and Connecticut are read without relying on exact column names: rows are found with
+# Socrata's full-text search ($q) on the last name, and the name, credential type, status,
+# expiration and number columns are recognised by their names. A source whose columns can't be
+# recognised returns "unverified" rather than guessing.
+SOCRATA_STATES = {
+    "WA": {
+        "name": "Washington",
+        "endpoint": "https://data.wa.gov/resource/qxh8-f4bd.json",
+        "source": "Washington State Department of Health provider credentials (live, public)",
+        "label": "Washington DOH",
+        "url": "https://data.wa.gov/resource/qxh8-f4bd",
+        "types": {
+            "physician": r"physician and surgeon|osteopathic physician",
+            "psychologist": r"psychologist",
+            "counselor": r"mental health counselor|chemical dependency|substance use disorder professional",
+            "social worker": r"social work",
+        },
+    },
+    "CT": {
+        "name": "Connecticut",
+        "endpoint": "https://data.ct.gov/resource/ngch-56tr.json",
+        "source": "Connecticut eLicensing licenses and credentials (live, public)",
+        "label": "Connecticut DPH",
+        "url": "https://data.ct.gov/resource/ngch-56tr",
+        "types": {
+            "physician": r"physician|surgeon|osteopath",
+            "psychologist": r"psychologist",
+            "counselor": r"professional counselor|alcohol and drug counselor",
+            "social worker": r"social work",
+        },
+    },
+}
+_STATE_NAMES = {"colorado": "CO", "washington": "WA", "connecticut": "CT"}
 
 # DORA license type codes (the prefix of a Colorado license number, e.g. "PSY.0001234").
 _CO_LICENSE_TYPES = {
@@ -61,8 +98,111 @@ def _digits(value: str) -> str:
 
 
 def _result(state, profession, status, **extra) -> str:
-    return json.dumps({"source": CO_SOURCE, "state": state, "profession": profession,
-                       "status": status, **extra})
+    return json.dumps({"source": CO_SOURCE, "source_label": "Colorado DORA",
+                       "source_url": "https://data.colorado.gov/resource/7s5z-vewr",
+                       "state": state, "profession": profession, "status": status, **extra})
+
+
+def _state_code(state: str) -> str:
+    state = state.strip()
+    return _STATE_NAMES.get(state.lower(), state.upper())
+
+
+def _column(row: dict, *patterns) -> str:
+    """The first column whose name matches one of the patterns, in pattern order."""
+    for pattern in patterns:
+        for key in row:
+            if re.fullmatch(pattern, key.lower()):
+                return key
+    return ""
+
+
+def _words(value) -> list:
+    return re.findall(r"[a-z]+", str(value or "").lower())
+
+
+def _name_fits(row: dict, first: str, last: str) -> bool:
+    first_col, last_col = _column(row, r"first_?name"), _column(row, r"last_?name")
+    if first_col and last_col:
+        return _words(row.get(last_col)) == _words(last) and _words(row.get(first_col))[:1] == _words(first)[:1]
+    name_col = _column(row, r"name", r"full_?name", r"licensee_?name")
+    words = _words(row.get(name_col)) if name_col else []
+    return bool(words) and all(w in words for w in _words(last) + _words(first)[:1])
+
+
+def _check_socrata(code: str, first_name, last_name, profession, state, license_number) -> str:
+    cfg = SOCRATA_STATES[code]
+
+    def result(status, **extra):
+        return json.dumps({"source": cfg["source"], "source_label": cfg["label"], "source_url": cfg["url"],
+                           "state": state, "profession": profession, "status": status, **extra})
+
+    try:
+        resp = requests.get(cfg["endpoint"], params={"$q": f"{first_name.strip()} {last_name.strip()}", "$limit": 500}, timeout=15)
+        resp.raise_for_status()
+        rows = resp.json()
+    except (requests.RequestException, ValueError) as exc:
+        return result("unverified", note=f"{cfg['name']} license records could not be reached "
+                                         f"({exc.__class__.__name__}); a person needs to confirm license status.")
+    if not isinstance(rows, list):
+        return result("unverified", note=f"{cfg['name']} license records returned an unexpected response; "
+                                         "a person needs to confirm license status.")
+    if rows and not _column(rows[0], r"status", r"license_?status", r"credential_?status"):
+        print(f"[license] {code} columns not recognised: {sorted(rows[0])}")
+        return result("unverified", note=f"{cfg['name']} license records couldn't be read automatically; "
+                                         "a person needs to confirm license status.")
+
+    type_pattern = cfg["types"].get(profession)
+    candidates = []
+    for row in rows:
+        if not _name_fits(row, first_name, last_name):
+            continue
+        type_cols = [k for k in row if re.search(r"credential|license|profession|type", k.lower())
+                     and not re.search(r"number|id$|date|status", k.lower())]
+        values = [str(row.get(k) or "").strip() for k in type_cols]
+        fitting = [v for v in values if type_pattern and re.search(type_pattern, v.lower())]
+        if type_pattern and not fitting:
+            continue
+        candidates.append((row, fitting[0] if fitting else " ".join(values)))
+
+    def number_col(row):
+        return _column(row, r"credential_?number", r"license_?number", r"full_?credential_?code", r".*number")
+
+    # The NPPES license number pins down the exact record when it's available.
+    wanted_digits = _digits(license_number)
+    if wanted_digits:
+        exact = [c for c in candidates if _digits(c[0].get(number_col(c[0]))) == wanted_digits]
+        if exact:
+            candidates = exact
+    # One person often holds the same credential as several records (e.g. an old license
+    # replaced by a new one); prefer the active record when exactly one is active.
+    active = [c for c in candidates if _normalize_status(c[0].get(_column(c[0], r"status"))) == "active"]
+    if len(candidates) > 1 and len(active) == 1:
+        candidates = active
+
+    if not candidates:
+        return result("not_found", match_count=0)
+
+    records = []
+    for row, type_text in candidates[:5]:
+        status_col = _column(row, r"status", r"license_?status", r"credential_?status")
+        reason_col = _column(row, r"status_?reason")
+        expiry_col = _column(row, r"expiration_?date", r".*expir.*")
+        action_col = _column(row, r"action_?taken", r".*disciplin.*", r".*action.*")
+        status_text = " ".join(str(row.get(c) or "").strip() for c in (status_col, reason_col) if c).strip()
+        records.append({
+            "license_number": row.get(number_col(row)),
+            "license_type": type_text.strip()[:80],
+            "status_text": status_text,
+            "expiration_date": str(row.get(expiry_col) or "")[:10] or None,
+            "city": row.get(_column(row, r"city")),
+            "discipline_on_record": bool(action_col and str(row.get(action_col) or "").strip().lower()
+                                         not in ("", "no", "none", "n", "false")),
+        })
+
+    if len(candidates) > 1:
+        return result("ambiguous", match_count=len(candidates), records=records)
+    return result(_normalize_status(records[0]["status_text"]), match_count=1, records=records)
 
 
 @beta_tool
@@ -78,7 +218,10 @@ def check_license_status(first_name: str, last_name: str, profession: str, state
         license_number: The license number from the NPPES identity result, if it has one.
     """
     profession = profession.strip().lower()
-    if state.strip().lower() not in {"colorado", "co"}:
+    code = _state_code(state)
+    if code in SOCRATA_STATES:
+        return _check_socrata(code, first_name, last_name, profession, state, license_number)
+    if code != "CO":
         return json.dumps({
             "source": None,
             "state": state,

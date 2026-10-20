@@ -12,6 +12,7 @@ Without job data (no SERPAPI_KEY, or every search failed) matching falls back
 to the CMS hospital shortlist, which has no job links.
 """
 
+import contextvars
 import functools
 import json
 import re
@@ -20,7 +21,8 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from anthropic import beta_tool
 
-from .tools_jobs import city_listings, facility_listings, pay_range, _is_facility_job, _job_city, _link, _title_fits
+from .tools_jobs import (city_listings, facility_listings, pay_range, _is_facility_job, _job_city, _job_state, _link,
+                        _title_fits)
 from . import prefs as prefs_mod
 
 CMS_ENDPOINT = "https://data.cms.gov/provider-data/api/1/datastore/query/xubh-q36u/0"
@@ -30,9 +32,15 @@ MAX_PAGES = 4
 SHORTLIST_SIZE = 8
 
 STATE_CODES = {
-    "Arizona": "AZ", "California": "CA", "Colorado": "CO", "Florida": "FL", "Georgia": "GA",
-    "Illinois": "IL", "New York": "NY", "Ohio": "OH", "Texas": "TX", "Virginia": "VA",
+    "Arizona": "AZ", "California": "CA", "Colorado": "CO", "Connecticut": "CT", "Florida": "FL",
+    "Georgia": "GA", "Illinois": "IL", "New York": "NY", "Ohio": "OH", "Texas": "TX", "Virginia": "VA",
+    "Washington": "WA",
 }
+
+# A signed-in physician's preferences, set around their verification so the coordinator's
+# match_facilities call searches the way they asked (area, extra cities, contract type).
+SEARCH_PREFS = contextvars.ContextVar("search_prefs", default=None)
+_SEARCH_VARIANTS = {"locums": "locum tenens", "per-diem": "per diem", "contractor": "contract"}
 
 BEHAVIORAL_PROFESSIONS = {"psychologist", "counselor", "social worker"}
 BEHAVIORAL_SPECIALTY_WORDS = ("psych", "behavior", "counsel", "social work", "addiction")
@@ -170,20 +178,31 @@ def _display_name(name: str) -> str:
 
 
 def hiring_candidates(profession: str, state: str, specialty: str = "", practice_city: str = "",
-                      practice_zip: str = "", notes: list = None):
+                      practice_zip: str = "", notes: list = None, prefs: dict = None):
     """Employers near the clinician with open roles in their profession, best fit first.
 
     Each candidate has at least one real listing. Returns None when job data isn't available
-    (no SERPAPI_KEY, or every search failed). Appends plain lines about the searches to `notes`."""
+    (no SERPAPI_KEY, or every search failed). Appends plain lines about the searches to `notes`.
+    Preferences can widen the searches to the whole state and to extra cities, and aim them at
+    contractor, per diem or locums roles."""
     notes = [] if notes is None else notes
+    prefs = prefs or {}
     prof = profession.strip().lower()
     state_code = STATE_CODES.get(state.strip(), state.strip().upper())
+    state_name = next((name for name, code in STATE_CODES.items() if code == state_code), state.strip())
     hospitals = shortlist_facilities(profession, state, specialty, practice_city, practice_zip)
     home = practice_city.strip().title() or (hospitals[0]["city"] if hospitals else "")
+    variant = _SEARCH_VARIANTS.get(prefs.get("contract"), "")
 
     cities = list(dict.fromkeys([c for c in [home] + [h["city"] for h in hospitals] if c]))[:CITY_SEARCHES]
+    searches = [(c, state_code) for c in cities]
+    if prefs.get("area") == "state":
+        searches.append(("", state_name))
+    chosen = [prefs_mod.parse_city(c) for c in prefs.get("also_cities") or []]
+    chosen = [c for c in chosen if c]
+    searches += [c for c in chosen if c not in searches]
     with ThreadPoolExecutor(max_workers=4) as pool:
-        by_city = list(pool.map(lambda c: city_listings(c, state_code, prof, notes), cities))
+        by_city = list(pool.map(lambda s: city_listings(s[0], s[1], prof, notes, variant), searches))
     if all(r is None for r in by_city):
         return None
     jobs = [j for r in by_city for j in (r or [])]
@@ -196,7 +215,10 @@ def hiring_candidates(profession: str, state: str, specialty: str = "", practice
     groups = {}
     for job in jobs:
         link, company = _link(job), job.get("company_name") or ""
-        if not link or not company or not _title_fits(job.get("title"), prof) or re.search(_STAFFING, company.lower()):
+        if not link or not company or not _title_fits(job.get("title"), prof):
+            continue
+        # Locums roles are mostly posted by agencies, so they stay in for a locums preference.
+        if prefs.get("contract") != "locums" and re.search(_STAFFING, company.lower()):
             continue
         hospital = next((h for h in hospitals if _is_facility_job(h, job)), None)
         if hospital:
@@ -206,7 +228,8 @@ def hiring_candidates(profession: str, state: str, specialty: str = "", practice
             key = "emp-" + re.sub(r"\s+", "-", _employer_key(company))
             city = _job_city(job) or home.lower()
             base = {"name": _display_name(company), "city": "Remote" if city in ("anywhere", "remote") else city.title(),
-                    "state": state_code, "hospital_type": None, "emergency_services": False, "cms_rating": None}
+                    "state": _job_state(job) or state_code, "hospital_type": None, "emergency_services": False,
+                    "cms_rating": None}
         group = groups.setdefault(key, {"facility_id": key, **base, "listings": [], "_links": set()})
         if link not in group["_links"]:
             group["_links"].add(link)
@@ -217,6 +240,7 @@ def hiring_candidates(profession: str, state: str, specialty: str = "", practice
                 "pay_annual_min": prefs_mod.pay_annual_min(pay),
                 "schedule": ext.get("schedule_type"),
                 "remote": bool(ext.get("work_from_home")) or _job_city(job) in ("anywhere", "remote"),
+                "terms": prefs_mod.contract_terms(job),
             })
 
     behavioral = prof in BEHAVIORAL_PROFESSIONS
@@ -224,9 +248,18 @@ def hiring_candidates(profession: str, state: str, specialty: str = "", practice
     candidates = []
     for g in groups.values():
         signals, score = [], 0.0
-        if g["city"].lower() == home.lower():
+        if g["city"].lower() == home.lower() and g["state"] == state_code:
             score += 4
             signals.append("Same city as practice address")
+        elif (g["city"], g["state"]) in chosen:
+            score += 4
+            signals.append(f"In {g['city']}, a city you chose")
+        elif g["state"] != state_code:
+            score += 2
+            signals.append(f"In {g['city']}, {g['state']}")
+        elif prefs.get("area") == "state" and g["city"] not in cities and g["city"] != "Remote":
+            score += 1.5
+            signals.append(f"In {g['city']}, elsewhere in {state_name}")
         else:
             score += 2
             signals.append(f"Near the practice address ({g['city']})")
@@ -258,9 +291,9 @@ def hiring_candidates(profession: str, state: str, specialty: str = "", practice
     return candidates[:HIRING_SHORTLIST]
 
 
-def _candidates(match_input: dict, notes: list = None):
+def _candidates(match_input: dict, notes: list = None, prefs: dict = None):
     """Hiring employers, or the CMS hospital shortlist when there's no job data."""
-    hiring = hiring_candidates(**match_input, notes=notes)
+    hiring = hiring_candidates(**match_input, notes=notes, prefs=prefs)
     if hiring:
         return hiring, True
     return shortlist_facilities(**match_input), False
@@ -281,7 +314,8 @@ def match_facilities(profession: str, state: str, specialty: str = "",
         practice_zip: practice_zip from the NPPES identity result, if available.
     """
     candidates, hiring = _candidates({"profession": profession, "state": state, "specialty": specialty,
-                                      "practice_city": practice_city, "practice_zip": practice_zip})
+                                      "practice_city": practice_city, "practice_zip": practice_zip},
+                                     prefs=SEARCH_PREFS.get())
     return json.dumps({
         "source": "Google Jobs open roles; hospital details from " + CMS_SOURCE if hiring else CMS_SOURCE,
         "note": ("Every candidate has open roles in this profession (titles listed)." if hiring else
@@ -336,8 +370,8 @@ def build_facility_matches(tool_calls: list, limit: int = 5, notes: list = None,
     match_call = next((t for t in tool_calls if t["name"] == "match_facilities"), None)
     if not match_call:
         return None
-    candidates, _ = _candidates(match_call["input"], notes)
     prefs = prefs_mod.clean(prefs)
+    candidates, _ = _candidates(match_call["input"], notes, prefs)
     if prefs:
         candidates = apply_prefs(candidates, prefs)
     by_id = {c["facility_id"]: c for c in candidates}
@@ -359,6 +393,6 @@ def build_facility_matches(tool_calls: list, limit: int = 5, notes: list = None,
             ordered.append({**candidate, "reason": "; ".join(candidate["signals"]), "ranked_by": "score"})
 
     for match in ordered:
-        listings = [{k: l.get(k) for k in ("title", "link", "pay")} for l in (match.pop("listings", None) or [])]
+        listings = [{k: l.get(k) for k in ("title", "link", "pay", "terms")} for l in (match.pop("listings", None) or [])]
         match["openings"] = {"count": len(listings), "listings": listings[:3]} if listings else None
     return ordered[:limit]
