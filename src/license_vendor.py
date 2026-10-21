@@ -1,5 +1,7 @@
 """Backup license check through License Verify (licenseverificationapi.com), a paid
 API built from state board rosters, for states without a free public source.
+It looks up one license by profession, state and license number (all required);
+the license number comes from the NPPES registry.
 
 Only runs when LICENSE_VERIFY_API_KEY is set. The vendor's full reference is
 behind sign-in, so responses are read without relying on exact field names:
@@ -119,10 +121,9 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
     if cached and time.time() - cached[0] < CACHE_TTL_SECONDS:
         return cached[1]
 
+    # The API looks up one license by number; the name is checked against what it returns.
     params = {"state": state_code, "profession": _PROFESSIONS.get(profession, profession),
-              "first_name": first_name.strip(), "last_name": last_name.strip()}
-    if license_number:
-        params["license_number"] = license_number.strip()
+              "license_number": license_number.strip()}
     try:
         resp = requests.get(os.environ.get("LICENSE_VERIFY_URL") or DEFAULT_URL, params=params, timeout=20,
                             headers={"Authorization": f"Bearer {api_key}", "Accept": "application/json"})

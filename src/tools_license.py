@@ -22,6 +22,7 @@ from anthropic import beta_tool
 
 from . import license_vendor
 from .tools_facilities import STATE_CODES
+from .tools_npi import NPPES_ENDPOINT, _PROFESSION_TAXONOMY_PREFIXES
 
 CO_LICENSE_ENDPOINT = "https://data.colorado.gov/resource/7s5z-vewr.json"
 CO_SOURCE = "Colorado DORA professional license records (live, public)"
@@ -209,13 +210,42 @@ def _check_socrata(code: str, first_name, last_name, profession, state, license_
     return result(_normalize_status(records[0]["status_text"]), match_count=1, records=records)
 
 
-def _check_vendor(code: str, first_name, last_name, profession, state, license_number) -> str:
-    found = license_vendor.lookup(first_name, last_name, profession, code, license_number)
+def _registry_license(first_name, last_name, profession, code) -> str:
+    """The state license number the NPPES registry lists for this person in this state, when
+    exactly one registry record of the profession matches; "" otherwise."""
+    prefixes = _PROFESSION_TAXONOMY_PREFIXES.get(profession, ())
+    try:
+        resp = requests.get(NPPES_ENDPOINT, params={"version": "2.1", "first_name": first_name.strip(),
+                                                    "last_name": last_name.strip(), "state": code, "limit": 20},
+                            timeout=15)
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+    except (requests.RequestException, ValueError):
+        return ""
+    found = {}
+    for r in results:
+        numbers = [t.get("license") for t in r.get("taxonomies", [])
+                   if (t.get("code") or "").startswith(prefixes) and (t.get("state") or "").upper() == code
+                   and t.get("license")]
+        if numbers:
+            found[r.get("number")] = numbers[0]
+    return next(iter(found.values())) if len(found) == 1 else ""
 
+
+def _check_vendor(code: str, first_name, last_name, profession, state, license_number) -> str:
     def result(status, **extra):
         return json.dumps({"source": "License Verify API (state board rosters)", "source_label": "License Verify",
                            "source_url": "https://licenseverificationapi.com", "state": state,
                            "profession": profession, "status": status, **extra})
+
+    # License Verify looks licenses up by number only, so the number has to come from the
+    # registry: the one the coordinator passed, or the registry's number for this state.
+    license_number = _registry_license(first_name, last_name, profession, code) or license_number
+    if not license_number:
+        return result("unverified", note=f"License Verify looks licenses up by license number, and the national "
+                                         f"provider registry doesn't list a {state} license number for this person. "
+                                         "A person needs to confirm the license with the state board.")
+    found = license_vendor.lookup(first_name, last_name, profession, code, license_number)
 
     if "records" not in found:
         return result("unverified", note=found["note"] + " A person needs to confirm license status.")
@@ -228,9 +258,9 @@ def _check_vendor(code: str, first_name, last_name, profession, state, license_n
         returned = found.get("returned") or 0
         note = (f"License Verify returned {returned} record{'s' if returned != 1 else ''} for this search, but none "
                 f"matched this name ({found.get('sample', '')})." if returned else
-                f"License Verify found no {state} {profession} license record for this name. Its coverage may not "
-                f"include {profession}s in {state}, so this doesn't mean the person is unlicensed; a person needs "
-                "to confirm the license with the state board.")
+                f"License Verify found no {state} {profession} license numbered {license_number}. Its coverage may "
+                f"not include {profession}s in {state}, so this doesn't mean the person is unlicensed; a person "
+                "needs to confirm the license with the state board.")
         return result("not_found", match_count=0, note=note)
     if not records[0]["status_text"].strip():
         print(f"[license-vendor] record without a recognised status: {records[0]['fields']}")
