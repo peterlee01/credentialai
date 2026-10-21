@@ -225,7 +225,11 @@ def _check_vendor(code: str, first_name, last_name, profession, state, license_n
         exact = [r for r in records if _digits(str(r.get("license_number") or "")) == wanted_digits]
         records = exact or records
     if not records:
-        return result("not_found", match_count=0)
+        returned = found.get("returned") or 0
+        note = (f"License Verify returned {returned} record{'s' if returned != 1 else ''} for this search, but none "
+                f"matched this name ({found.get('sample', '')})." if returned else
+                f"License Verify has no {state} {profession} license record for this name.")
+        return result("not_found", match_count=0, note=note)
     if not records[0]["status_text"].strip():
         print(f"[license-vendor] record without a recognised status: {records[0]['fields']}")
         return result("unverified", note="License Verify's record couldn't be read automatically (fields: "

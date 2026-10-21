@@ -141,7 +141,9 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
         if data and not records and not _has_list(data):
             print(f"[license-vendor] unrecognised response: {json.dumps(data)[:500]}")
             return {"note": f"License Verify's response couldn't be read automatically ({_describe(data)})."}
-        out, unnamed = {"records": []}, 0
+        out, unnamed = {"records": [], "returned": len(records)}, 0
+        if records:
+            out["sample"] = _describe(records[0])
         for record in records:
             record = _flatten(record)
             fits = _name_fits(record, first_name, last_name)
