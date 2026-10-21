@@ -3,6 +3,7 @@ via the Claude API Tool Runner, then logs the outcome to the audit trail.
 """
 
 import json
+import re
 
 import anthropic
 
@@ -69,7 +70,49 @@ match_facilities, rank_facility_matches or any facility match in the paragraph t
 separately in the product UI, not in this prose.
 - Do not write a multi-section report, do not add a "Recommendation" section, do not ask a \
 follow-up question. One verdict line, one explanatory paragraph. That is the entire response.
+- The final message starts with the verdict line. Never narrate your process, the rules or what \
+you will or won't do next (no "The license status came back...", no "I won't proceed to matching").
 """
+
+VERDICTS = ("NEEDS REVIEW", "NO-GO", "GO")
+
+
+def rule_verdict(tool_calls: list) -> str:
+    """The verdict the rules above give for these tool results, used when the model's final
+    message doesn't start with one."""
+    def result(name):
+        call = next((t for t in reversed(tool_calls) if t["name"] == name), None)
+        return (call or {}).get("result") or {}
+    identity, sanctions, license_ = (result("get_npi_identity"), result("check_sanctions"),
+                                     result("check_license_status"))
+    if (sanctions.get("hit_count") or 0) > 0 or license_.get("status") in ("expired", "revoked"):
+        return "NO-GO"
+    if identity.get("match_count") == 1 and sanctions.get("hit_count") == 0 and license_.get("status") == "active":
+        return "GO"
+    return "NEEDS REVIEW"
+
+
+# Sentences about the run itself rather than the clinician, dropped from a malformed answer.
+_PROCESS_TALK = r"verdict|came back|proceed|matching|\btool|\brules?\b|requires a|I will|I won't|I'll"
+
+
+def clean_verdict_text(text: str, tool_calls: list, first_name: str, last_name: str, state: str) -> str:
+    """The final answer as "VERDICT\nparagraph", whatever shape the model returned."""
+    lines = [l.strip() for l in (text or "").strip().splitlines()]
+    for i, line in enumerate(lines):
+        if line.strip("*# ").upper() in VERDICTS:
+            paragraph = " ".join(l for l in lines[i + 1:] if l)
+            return line.strip("*# ").upper() + ("\n" + paragraph if paragraph else "")
+    verdict = rule_verdict(tool_calls)
+    sentences = re.split(r"(?<=[.!?])\s+", " ".join(l for l in lines if l))
+    kept = " ".join(s for s in sentences if s and not re.search(_PROCESS_TALK, s, re.I))
+    if not kept:
+        name = f"{first_name} {last_name}".strip()
+        kept = (f"{name} has been cleared on identity, sanctions and license." if verdict == "GO" else
+                f"{name} couldn't be cleared automatically on every check for {state}, so a person needs to "
+                "review the details below." if verdict == "NEEDS REVIEW" else
+                f"{name} has a sanction or license problem on record; see the details below.")
+    return verdict + "\n" + kept
 
 
 def _parse_result(content):
@@ -113,9 +156,12 @@ def run_verification(first_name: str, last_name: str, state: str, profession: st
     tool_calls = []
     for message in runner:
         calls_by_id = {}
+        texts = [block.text for block in message.content if block.type == "text"]
+        if texts:
+            final_text = "\n".join(texts)  # the last message's text is the answer
         for block in message.content:
             if block.type == "text":
-                final_text = block.text
+                continue
             elif block.type == "tool_use":
                 print(f"  [tool call] {block.name}({block.input})")
                 call = {"name": block.name, "input": block.input, "result": None}
@@ -132,5 +178,6 @@ def run_verification(first_name: str, last_name: str, state: str, profession: st
                 if call is not None:
                     call["result"] = _parse_result(item.get("content"))
 
+    final_text = clean_verdict_text(final_text, tool_calls, first_name, last_name, state)
     log_verification(request, final_text)
     return final_text, tool_calls
