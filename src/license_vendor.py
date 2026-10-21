@@ -30,11 +30,26 @@ def configured() -> bool:
 
 
 def _key(record: dict, *patterns) -> str:
-    for pattern in patterns:
-        for key in record:
-            if re.fullmatch(pattern, key.lower()):
-                return key
+    """The first key matching one of the patterns, exactly or after a nesting prefix
+    (e.g. "license_status" for "status")."""
+    for prefix in ("", r"(?:\w+_)?"):
+        for pattern in patterns:
+            for key in record:
+                if re.fullmatch(prefix + pattern, key.lower()):
+                    return key
     return ""
+
+
+def _flatten(record: dict, prefix: str = "") -> dict:
+    """Nested objects become prefixed keys, e.g. {"license": {"status": ...}} -> "license_status"."""
+    flat = {}
+    for key, value in record.items():
+        name = f"{prefix}_{key}" if prefix else str(key)
+        if isinstance(value, dict):
+            flat.update(_flatten(value, name))
+        else:
+            flat[name] = value
+    return flat
 
 
 def _words(value) -> list:
@@ -51,12 +66,11 @@ def _records(data) -> list:
         value = data.get(key)
         if isinstance(value, list):
             return [r for r in value if isinstance(r, dict)]
-        if isinstance(value, dict):
-            return _records(value)
-    for key in ("license", "result", "record"):
+    for key in ("data", "result", "record", "verification"):
         if isinstance(data.get(key), dict):
-            return [data[key]]
-    return [data] if _key(data, r"status", r"license_?status") else []
+            return _records(data[key])
+    # One license, possibly nested ({"license": {...}, "licensee": {...}}).
+    return [data] if _key(_flatten(data), r"status", r"standing") else []
 
 
 def _name_fits(record: dict, first: str, last: str) -> bool:
@@ -64,7 +78,8 @@ def _name_fits(record: dict, first: str, last: str) -> bool:
     if last_key:
         return (_words(record.get(last_key)) == _words(last)
                 and (not first_key or _words(record.get(first_key))[:1] == _words(first)[:1]))
-    name_key = _key(record, r"name", r"full_?name", r"licensee_?name", r"holder_?name")
+    name_key = "name" if "name" in record else _key(record, r"full_?name", r"licensee_?name", r"holder_?name",
+                                                     r"provider_?name")
     if not name_key:
         return None  # the record doesn't say whose license it is
     words = _words(record.get(name_key))
@@ -106,21 +121,23 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
             return {"note": f"License Verify's response couldn't be read automatically (fields: {keys})."}
         out, unnamed = {"records": []}, 0
         for record in records:
+            record = _flatten(record)
             fits = _name_fits(record, first_name, last_name)
             if fits is None and not license_number:
                 unnamed += 1
                 continue
             if fits is False:
                 continue
-            status_key = _key(record, r"status", r"license_?status", r"standing")
+            status_key = _key(record, r"status", r"license_?status", r"standing", r"\w*_status", r"\w*standing")
             out["records"].append({
-                "license_number": record.get(_key(record, r"license_?number", r"number", r"license_?no")),
+                "license_number": record.get(_key(record, r"license_?number", r"license_?no")),
                 "license_type": record.get(_key(record, r"license_?type", r"type", r"profession", r"credential")),
                 "status_text": str(record.get(status_key) or ""),
                 "expiration_date": str(record.get(_key(record, r"expir\w*", r"expires_?\w*", r"valid_?(until|to|through)"))
                                        or "")[:10] or None,
                 "board": record.get(_key(record, r"source_?board", r"board", r"source", r"issuing_?\w*")),
                 "discipline_on_record": bool(record.get(_key(record, r"disciplin\w*", r"\w*actions?"))),
+                "fields": sorted(record)[:25],
             })
         if unnamed and not out["records"]:
             return {"note": "License Verify's records don't name the license holder, so they can't be "

@@ -76,7 +76,8 @@ def build_summary(first_name: str, last_name: str, state: str, profession: str, 
         license_source = license_.get("source_label") or ("Colorado DORA" if license_.get("source") else "State board")
         record = (license_.get("records") or [None])[0]
         if record and license_.get("match_count") == 1:
-            parts = [f"License {record.get('license_number')} ({record.get('license_type')})",
+            number, kind = record.get("license_number"), record.get("license_type")
+            parts = [("License " + " ".join(p for p in (str(number or ""), f"({kind})" if kind else "") if p)).strip(),
                      f"status {record.get('status_text') or 'unknown'}"]
             if record.get("expiration_date"):
                 parts.append(f"expires {_long_date(record['expiration_date'])}")
