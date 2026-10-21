@@ -228,7 +228,9 @@ def _check_vendor(code: str, first_name, last_name, profession, state, license_n
         returned = found.get("returned") or 0
         note = (f"License Verify returned {returned} record{'s' if returned != 1 else ''} for this search, but none "
                 f"matched this name ({found.get('sample', '')})." if returned else
-                f"License Verify has no {state} {profession} license record for this name.")
+                f"License Verify found no {state} {profession} license record for this name. Its coverage may not "
+                f"include {profession}s in {state}, so this doesn't mean the person is unlicensed; a person needs "
+                "to confirm the license with the state board.")
         return result("not_found", match_count=0, note=note)
     if not records[0]["status_text"].strip():
         print(f"[license-vendor] record without a recognised status: {records[0]['fields']}")
