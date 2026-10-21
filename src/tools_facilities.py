@@ -32,9 +32,12 @@ MAX_PAGES = 4
 SHORTLIST_SIZE = 8
 
 STATE_CODES = {
-    "Arizona": "AZ", "California": "CA", "Colorado": "CO", "Connecticut": "CT", "Florida": "FL",
-    "Georgia": "GA", "Illinois": "IL", "New York": "NY", "Ohio": "OH", "Texas": "TX", "Virginia": "VA",
-    "Washington": "WA",
+    "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "California": "CA", "Colorado": "CO",
+    "Connecticut": "CT", "Delaware": "DE", "Florida": "FL", "Georgia": "GA", "Illinois": "IL",
+    "Maine": "ME", "Maryland": "MD", "Massachusetts": "MA", "Michigan": "MI", "Missouri": "MO",
+    "New Hampshire": "NH", "New Jersey": "NJ", "New York": "NY", "Ohio": "OH", "Rhode Island": "RI",
+    "Tennessee": "TN", "Texas": "TX", "Vermont": "VT", "Virginia": "VA", "Washington": "WA",
+    "West Virginia": "WV",
 }
 
 # A signed-in physician's preferences, set around their verification so the coordinator's
