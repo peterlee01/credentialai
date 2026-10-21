@@ -66,6 +66,7 @@
   </ul>
 
   <h2>How we use it</h2>
+  <p>When a facility searches for clinicians on the home page, the facility's city, state, profession, specialty and setting are used to find clinicians in the NPPES NPI Registry (public data), check them against the sources below, and send the matched clinicians' public registry details to Anthropic's Claude API, which writes the one-line reason for each match. Clinicians from the registry are labelled as not on Credentialai; only physicians who turned on "Let employers find me" are shown as open to offers.</p>
   <p>The information you submit is used solely to run the verification you requested: it is checked against the NPPES NPI Registry, the HHS-OIG List of Excluded Individuals/Entities and, for Colorado, Washington and Connecticut, those states' public license records (Colorado Department of Regulatory Agencies, Washington State Department of Health, Connecticut eLicensing), all public U.S. government data sources. For other states, the clinician's name, profession, state and license number are sent to License Verify (licenseverificationapi.com), a license verification service that checks state board rosters. It is also sent to Anthropic's Claude API, which coordinates the check and writes the verdict text, and the profession and location are used to search job listings (Google Jobs, via SerpApi) for employer matches.</p>
 
   <h2>Physician accounts</h2>
@@ -76,7 +77,7 @@
     <li>Your job preferences (setting, minimum pay, job type).</li>
     <li>Your verification results (verdict, check details and matched employers), so you can see your last result.</li>
   </ul>
-  <p>Only you can see your account data. It is not shared with employers. You can delete your account at any time from your account page, which permanently removes your profile and saved verifications.</p>
+  <p>Only you can see your account data. It is not shared with employers unless you turn on "Let employers find me": then facilities searching for your profession in your state see your name, specialty, city and verified status, marked "Open to offers". Your email is never shown. You can turn it off at any time. You can delete your account at any time from your account page, which permanently removes your profile and saved verifications.</p>
 
   <h2>What we don't do</h2>
   <ul>

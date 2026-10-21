@@ -52,6 +52,8 @@ def clean(prefs) -> dict:
             cities.append(city)
     if cities:
         out["also_cities"] = ["%s, %s" % c for c in cities[:MAX_ALSO_CITIES]]
+    if prefs.get("discoverable") is True:
+        out["discoverable"] = True  # shown to facilities searching for clinicians (src/clinician_match.py)
     return out
 
 

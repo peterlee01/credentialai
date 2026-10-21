@@ -373,7 +373,7 @@ def build_facility_matches(tool_calls: list, limit: int = 5, notes: list = None,
     match_call = next((t for t in tool_calls if t["name"] == "match_facilities"), None)
     if not match_call:
         return None
-    prefs = prefs_mod.clean(prefs)
+    prefs = {k: v for k, v in prefs_mod.clean(prefs).items() if k != "discoverable"}  # job prefs only
     candidates, _ = _candidates(match_call["input"], notes, prefs)
     if prefs:
         candidates = apply_prefs(candidates, prefs)

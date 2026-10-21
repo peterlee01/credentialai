@@ -306,6 +306,11 @@
   .report-btn { margin-top: 1.1rem; cursor: pointer; background: transparent; font-family: var(--sans); }
   .report-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+  .match-intro { margin-top: 1.2rem; }
+  .match-intro .result-heading { margin-bottom: 0.3rem; }
+  .match-note { margin: 0; color: var(--text); font-size: 0.95rem; }
+  .match-status { margin: -0.2rem 0 0; }
+  .match-reason { margin: 0.8rem 0 1rem; }
   .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
   .mock.lg { padding: 1.4rem; }
   .mock.lg .avatar { width: 3rem; height: 3rem; font-size: 1rem; }
@@ -393,14 +398,11 @@
           <button class="demo-tab" role="tab" id="tabPhysicians" aria-controls="panePhysicians" aria-selected="false" tabindex="-1" type="button">Physicians</button>
         </div>
         <div id="paneFacilities" role="tabpanel" aria-labelledby="tabFacilities">
-        <p class="tab-hint">For hospitals, staffing agencies and health plans. Check any clinician.</p>
-        <p class="panel-label">Run a verification and match</p>
-        <form id="verifyForm">
+        <p class="tab-hint">For hospitals, staffing agencies and health plans. Find verified clinicians for your opening.</p>
+        <p class="panel-label">AI-matched, pre-verified clinicians</p>
+        <form id="matchForm">
           <div class="row2">
-            <div class="field"><label for="fn">First name</label><input id="fn" required /></div>
-            <div class="field"><label for="ln">Last name</label><input id="ln" required /></div>
-          </div>
-          <div class="row2">
+            <div class="field"><label for="city">Facility city</label><input id="city" required autocomplete="address-level2" placeholder="e.g. Houston" /></div>
             <div class="field">
               <label for="state">State</label>
               <select id="state" required>
@@ -432,6 +434,8 @@
                 <option value="West Virginia">West Virginia</option>
               </select>
             </div>
+          </div>
+          <div class="row2">
             <div class="field">
               <label for="profession">Profession</label>
               <select id="profession" required>
@@ -441,8 +445,33 @@
                 <option value="social worker">Social worker</option>
               </select>
             </div>
+            <div class="field" id="specialtyField">
+              <label for="specialty">Specialty</label>
+              <select id="specialty">
+                <option value="">Any</option>
+                <option>Family Medicine</option>
+                <option>Internal Medicine</option>
+                <option>Hospitalist</option>
+                <option>Psychiatry</option>
+                <option>Pediatrics</option>
+                <option>Emergency Medicine</option>
+                <option>Anesthesiology</option>
+                <option>Obstetrics &amp; Gynecology</option>
+                <option>Cardiology</option>
+                <option>General Surgery</option>
+              </select>
+            </div>
           </div>
-          <button class="run" type="submit" id="runBtn">Run verification</button>
+          <div class="field">
+            <label for="setting">Setting</label>
+            <select id="setting">
+              <option value="">Any</option>
+              <option value="inpatient">Inpatient</option>
+              <option value="outpatient">Outpatient</option>
+              <option value="telehealth">Telehealth</option>
+            </select>
+          </div>
+          <button class="run" type="submit" id="runBtn">Find matched clinicians</button>
         </form>
         <div id="result"></div>
         </div>
@@ -657,7 +686,7 @@
 
 <script>
 (function () {
-  var form = document.getElementById('verifyForm');
+  var form = document.getElementById('matchForm');
   var btn = document.getElementById('runBtn');
   var resultEl = document.getElementById('result');
 
@@ -680,41 +709,28 @@
   // ?key=... is the owner pass: the server skips the per-visitor limit when it matches DEMO_BYPASS_KEY.
   var OWNER_KEY = params.get('key') || '';
 
-  function sampleResult(first, last, state, profession) {
-    var name = (first || 'Timothy') + ' ' + (last || 'Shea');
-    var job = function (title, pay) { return { title: title, pay: pay, link: 'https://www.google.com/search?q=' + encodeURIComponent(title) }; };
+  function sampleResult(city, state, profession) {
+    var checks = function (license) {
+      return [
+        { label: 'Identity', source: 'NPPES NPI Registry', status: 'Match found', tone: 'ok' },
+        { label: 'Sanctions', source: 'HHS-OIG LEIE', status: 'No hits', tone: 'ok' },
+        { label: 'License', source: 'State board', status: license, tone: license === 'Active' ? 'ok' : 'warn' }
+      ];
+    };
+    var c = city || 'Denver';
     return {
-      verdict_text: 'GO\nPreview with sample data. ' + name + ' is a clinical ' + profession + ' in Denver listed in the national provider registry. ' +
-        last + ' doesn\'t appear on the federal list of excluded providers, and the ' + state + ' licensing board shows the license as active through August 2027.',
-      runs_left: null,
-      summary: {
-        person: { name: name, initials: (name.split(' ')[0].charAt(0) + (name.split(' ')[1] || '').charAt(0)).toUpperCase(), subtitle: 'Psychologist, Clinical · ' + state },
-        checks: [
-          { label: 'Identity', source: 'NPPES NPI Registry', status: 'Match found', tone: 'ok' },
-          { label: 'Sanctions', source: 'HHS-OIG LEIE', status: 'No hits', tone: 'ok' },
-          { label: 'License', source: 'Colorado DORA', status: 'Active', tone: 'ok' }
-        ],
-        checks_clear: 3
-      },
-      facility_matches: [
-        { name: 'Sample Behavioral Health Hospital', city: 'Denver', state: 'CO', hospital_type: 'Psychiatric', match_pct: 82, cms_rating: null, emergency_services: false,
-          reason: 'Psychiatric facility in Denver, same city as practice address.',
-          openings: { count: 2, listings: [job('Clinical Psychologist', '$120K–$145K a year'), job('Staff Psychologist, Inpatient')] } },
-        { name: 'Sample Medical Center', city: 'Denver', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 65, cms_rating: 5, emergency_services: true,
-          reason: 'Same city as practice; CMS overall rating 5 of 5.',
-          openings: { count: 1, listings: [job('Health Psychologist', '$62–$75 an hour')] } },
-        { name: 'Sample Regional Hospital', city: 'Aurora', state: 'CO', hospital_type: 'Acute Care Hospitals', match_pct: 51, cms_rating: 4, emergency_services: true,
-          reason: 'Same ZIP area as practice; CMS overall rating 4 of 5.', openings: { count: 1, listings: [job('Psychologist, Outpatient')] } }
+      runs_left: null, registry_found: 24, opt_in_found: 1, excluded: 1,
+      matches: [
+        { name: 'Sample Physician A', credential: 'MD', specialty: 'Internal Medicine', city: c, open_to_offers: true, match_pct: 93, verdict: 'GO',
+          reason: 'Open to offers, verified, internal medicine in ' + c + ' and wants outpatient work.', checks: checks('Active') },
+        { name: 'Sample Physician B', credential: 'DO', specialty: 'Internal Medicine', city: c, open_to_offers: false, match_pct: 88, verdict: 'GO',
+          reason: 'Internal medicine in ' + c + ' with identity, sanctions and license all clear.', checks: checks('Active') },
+        { name: 'Sample Physician C', credential: 'MD', specialty: 'Family Medicine', city: c, open_to_offers: false, match_pct: 71, verdict: 'GO',
+          reason: 'Family medicine nearby; verified, a reasonable fit for outpatient care.', checks: checks('Active') },
+        { name: 'Sample Physician D', credential: 'MD', specialty: 'Internal Medicine', city: c, open_to_offers: false, match_pct: 64, verdict: 'NEEDS REVIEW',
+          reason: 'Strong specialty fit, but the license needs a person to confirm it.', checks: checks('Needs review') }
       ]
     };
-  }
-
-  function verdictClass(text) {
-    var first = (text || '').trim().split('\n')[0].trim().toUpperCase();
-    if (first === 'GO') return 'go';
-    if (first === 'NEEDS REVIEW') return 'review';
-    if (first === 'NO-GO') return 'nogo';
-    return 'error';
   }
 
   function esc(v) {
@@ -723,15 +739,9 @@
     });
   }
 
-  function openingsHtml(m) {
-    var o = m.openings;
-    if (!o || !o.count) return '';
-    return '<p class="match-hiring">Hiring · ' + o.count + ' open ' + (o.count === 1 ? 'role' : 'roles') + '</p><ul class="match-openings">' +
-      o.listings.map(function (j) {
-        return '<li><a href="' + esc(j.link) + '" target="_blank" rel="noopener">' + esc(j.title) + ' ↗</a>' +
-          (j.pay ? '<span class="job-pay">' + esc(j.pay) + '</span>' : '') +
-'</li>';
-      }).join('') + '</ul>';
+  function initials(name) {
+    var parts = String(name || '').split(' ').filter(Boolean);
+    return ((parts[0] || '').charAt(0) + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : '')).toUpperCase();
   }
 
   function downloadReport(report) {
@@ -860,99 +870,100 @@
     resultEl.innerHTML = html;
   }
 
+  // Specialty applies to physicians only.
+  var professionEl = document.getElementById('profession');
+  function toggleSpecialty() {
+    var physician = professionEl.value === 'physician';
+    document.getElementById('specialtyField').style.visibility = physician ? 'visible' : 'hidden';
+    if (!physician) document.getElementById('specialty').value = '';
+  }
+  professionEl.addEventListener('change', toggleSpecialty);
+  toggleSpecialty();
+
+  var PLURAL = { physician: 'physicians', psychologist: 'psychologists', counselor: 'counselors', 'social worker': 'social workers' };
+
+  function matchCard(m, i) {
+    var checks = (m.checks || []).map(function (c) {
+      return '<div class="mock-row"><div class="l"><b>' + esc(c.label) + '</b><small>' + esc(c.source) + '</small></div>' +
+        '<span class="chip ' + esc(c.tone) + '">' + esc(c.status) + '</span></div>';
+    }).join('');
+    var name = m.name + (m.credential ? ', ' + m.credential : '');
+    var meta = [m.specialty, m.city].filter(Boolean).join(' · ');
+    var status = m.open_to_offers
+      ? '<span class="chip ok">Open to offers</span>'
+      : '<span class="chip">Licensed nearby · not yet on Credentialai</span>';
+    return '<div class="mock lg result-card t-match">' +
+      '<div class="mock-head"><div class="mock-person"><span class="avatar">' + esc(initials(m.name)) + '</span>' +
+      '<div><b>' + (i + 1) + ' · ' + esc(name) + '</b><small>' + esc(meta) + '</small></div></div>' +
+      (m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '') + '</div>' +
+      '<div class="match-status">' + status + '</div>' +
+      (m.reason ? '<p class="mock-explain match-reason">' + esc(m.reason) + '</p>' : '') +
+      checks +
+      (m.report || PREVIEW ? '<button type="button" class="btn-ghost report-btn" data-i="' + i + '">Download verification report (PDF)</button>' : '') +
+      '</div>';
+  }
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    var first_name = document.getElementById('fn').value.trim();
-    var last_name = document.getElementById('ln').value.trim();
+    var city = document.getElementById('city').value.trim();
     var state = document.getElementById('state').value;
-    var profession = document.getElementById('profession').value;
+    var profession = professionEl.value;
+    var specialty = document.getElementById('specialty').value;
+    var setting = document.getElementById('setting').value;
 
     btn.disabled = true;
-    btn.textContent = 'Initializing workflow…';
-    renderResult('<div class="verdict-box error"><span class="spinner"></span>Checking identity, sanctions and license, then matching facilities. This can take up to a minute.</div>');
+    btn.textContent = 'Finding clinicians…';
+    renderResult('<div class="verdict-box error"><span class="spinner"></span>Finding ' + esc(PLURAL[profession]) + ' near ' + esc(city) +
+      ', checking each one\'s identity, sanctions and license, then matching them to your opening. This can take up to a minute.</div>');
 
     var headers = { 'Content-Type': 'application/json' };
     if (OWNER_KEY) headers['X-Demo-Key'] = OWNER_KEY;
     var request = PREVIEW
       ? new Promise(function (resolve) {
-          setTimeout(function () { resolve({ status: 200, data: sampleResult(first_name, last_name, state, profession) }); }, 800);
+          setTimeout(function () { resolve({ status: 200, data: sampleResult(city, state, profession) }); }, 800);
         })
-      : fetch('/api/verify', {
+      : fetch('/api/match', {
           method: 'POST',
           headers: headers,
-          body: JSON.stringify({ first_name: first_name, last_name: last_name, state: state, profession: profession })
+          body: JSON.stringify({ city: city, state: state, profession: profession, specialty: specialty, setting: setting })
         }).then(function (res) {
           return res.json().then(function (data) { return { status: res.status, data: data }; });
         });
 
     request
       .then(function (r) {
-        btn.textContent = 'Run verification';
+        btn.textContent = 'Find matched clinicians';
         if (r.status === 429) {
           btn.disabled = true;
-          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 live verifications for now. Please check back later.</div></div>');
+          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 live searches for now. Please check back later.</div></div>');
           return;
         }
         if (r.status !== 200) {
           btn.disabled = false;
-          renderResult('<div class="verdict-box error"><div class="verdict-title">Error</div><div class="verdict-explain">' + (r.data.error || 'Something went wrong.') + '</div></div>');
+          renderResult('<div class="verdict-box error"><div class="verdict-title">Error</div><div class="verdict-explain">' + esc(r.data.error || 'Something went wrong.') + '</div></div>');
           return;
         }
-        var cls = verdictClass(r.data.verdict_text);
-        var lines = (r.data.verdict_text || '').trim().split('\n');
-        var title = lines[0];
-        var explain = lines.slice(1).join(' ').trim();
-        var summary = r.data.summary;
-        var person = summary ? summary.person : {
-          name: first_name + ' ' + last_name,
-          initials: (first_name.charAt(0) + last_name.charAt(0)).toUpperCase(),
-          subtitle: profession.charAt(0).toUpperCase() + profession.slice(1) + ' · ' + state
-        };
-        function head(chip) {
-          return '<div class="mock-head"><div class="mock-person"><span class="avatar">' + esc(person.initials) + '</span>' +
-            '<div><b>' + esc(person.name) + '</b><small>' + esc(person.subtitle) + '</small></div></div>' + (chip || '') + '</div>';
+        var matches = r.data.matches || [];
+        var what = (specialty ? specialty + ' ' : '') + PLURAL[profession];
+        if (!matches.length) {
+          renderResult('<p class="match-empty">No ' + esc(what) + ' found near ' + esc(city) + ', ' + esc(state) +
+            ' in the national provider registry. Check the city\'s spelling or try a nearby city.</p>');
+        } else {
+          var note = matches.length + ' matched ' + what + ' for your ' + (setting ? setting + ' ' : '') + 'opening near ' + city + ', ' + state + '.' +
+            (r.data.excluded ? ' ' + r.data.excluded + ' left out for a sanction or license problem.' : '');
+          renderResult('<div class="match-intro"><p class="result-heading">AI-matched clinicians</p><p class="match-note">' + esc(note) + '</p></div>' +
+            matches.map(matchCard).join(''));
+          Array.prototype.forEach.call(resultEl.querySelectorAll('.report-btn'), function (b) {
+            b.addEventListener('click', function () { downloadReport(matches[+b.getAttribute('data-i')].report); });
+          });
         }
-
-        var checkRows = summary ? summary.checks.map(function (c) {
-          return '<div class="mock-row"><div class="l"><b>' + esc(c.label) + '</b><small>' + esc(c.source) + '</small></div>' +
-            '<span class="chip ' + esc(c.tone) + '">' + esc(c.status) + '</span></div>';
-        }).join('') : '';
-        var clear = summary ? summary.checks_clear + ' of 3 checks clear, each cited' : '';
-        var verifyCard = '<div class="mock lg result-card t-cred">' +
-          head('') +
-          checkRows +
-          '<div class="mock-verdict ' + cls + '"><b>' + esc(title) + '</b><small>' + esc(clear) + '</small></div>' +
-          (explain ? '<p class="mock-explain">' + esc(explain) + '</p>' : '') +
-          (r.data.report || PREVIEW ? '<button type="button" class="btn-ghost report-btn" id="reportBtn">Download verification report (PDF)</button>' : '') +
-          '</div>';
-
-        var matchHtml = '';
-        var matches = r.data.facility_matches;
-        if (matches && matches.length) {
-          matchHtml = '<div class="mock lg result-card t-match"><p class="result-heading">Matched facilities</p>' + head('') +
-            '<div class="mock-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>' +
-            matches.map(function (m, i) {
-              var meta = [m.city + ', ' + m.state, m.hospital_type, m.cms_rating ? 'Rated ' + m.cms_rating + ' of 5' : '',
-                m.emergency_services ? 'Emergency services' : ''].filter(Boolean).join(' · ');
-              var pct = m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '';
-              return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' +
-                openingsHtml(m) + '</div>' + pct + '</div>';
-            }).join('') + '</div>';
-        } else if (matches && matches.length === 0) {
-          matchHtml = '<p class="match-empty">No facilities found for ' + esc(state) + ' in the CMS hospital list.</p>';
-        } else if (cls === 'review' || cls === 'nogo') {
-          matchHtml = '<p class="match-empty">Facility matching runs only after a GO verdict.</p>';
-        }
-        renderResult(verifyCard + matchHtml);
-        var reportBtn = document.getElementById('reportBtn');
-        if (reportBtn) reportBtn.addEventListener('click', function () { downloadReport(r.data.report); });
         // The server enforces the per-visitor limit; the button just mirrors it.
         btn.disabled = r.data.runs_left === 0;
       })
       .catch(function (err) {
         btn.disabled = false;
-        btn.textContent = 'Run verification';
-        renderResult('<div class="verdict-box error"><div class="verdict-title">Network error</div><div class="verdict-explain">' + err.message + '</div></div>');
+        btn.textContent = 'Find matched clinicians';
+        renderResult('<div class="verdict-box error"><div class="verdict-title">Network error</div><div class="verdict-explain">' + esc(err.message) + '</div></div>');
       });
   });
 })();
