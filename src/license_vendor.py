@@ -66,11 +66,35 @@ def _records(data) -> list:
         value = data.get(key)
         if isinstance(value, list):
             return [r for r in value if isinstance(r, dict)]
+    # Any other list of records, e.g. {"data": {"providers": [...]}} or {"data": {"licenses": []}}.
+    lists = [v for v in data.values() if isinstance(v, list) and all(isinstance(r, dict) for r in v)]
+    if len(lists) == 1:
+        return lists[0]
     for key in ("data", "result", "record", "verification"):
         if isinstance(data.get(key), dict):
             return _records(data[key])
     # One license, possibly nested ({"license": {...}, "licensee": {...}}).
     return [data] if _key(_flatten(data), r"status", r"standing") else []
+
+
+def _has_list(data) -> bool:
+    """Whether a list (of results, possibly empty) sits anywhere in the response."""
+    if isinstance(data, list):
+        return True
+    return isinstance(data, dict) and any(_has_list(v) for v in data.values())
+
+
+def _describe(data) -> str:
+    """Field names, with short plain values, so an unexpected format can be read from the note."""
+    if not isinstance(data, dict):
+        return f"a {type(data).__name__}: {str(data)[:80]}"
+    parts = []
+    for key, value in _flatten(data).items():
+        if isinstance(value, (bool, int, float)) or value is None or (isinstance(value, str) and len(value) <= 60):
+            parts.append(f"{key}={value!r}")
+        else:
+            parts.append(f"{key} ({type(value).__name__})")
+    return "fields: " + ", ".join(parts[:20])
 
 
 def _name_fits(record: dict, first: str, last: str) -> bool:
@@ -114,11 +138,9 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
         return {"note": f"License Verify returned an error ({resp.status_code}{': ' + str(message)[:80] if message else ''})."}
     else:
         records = _records(data)
-        if data and not records and not (isinstance(data, dict) and any(
-                isinstance(v, list) for v in data.values())):
-            keys = sorted(data) if isinstance(data, dict) else type(data).__name__
+        if data and not records and not _has_list(data):
             print(f"[license-vendor] unrecognised response: {json.dumps(data)[:500]}")
-            return {"note": f"License Verify's response couldn't be read automatically (fields: {keys})."}
+            return {"note": f"License Verify's response couldn't be read automatically ({_describe(data)})."}
         out, unnamed = {"records": []}, 0
         for record in records:
             record = _flatten(record)
