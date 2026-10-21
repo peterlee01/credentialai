@@ -273,7 +273,8 @@ def _check_vendor(code: str, first_name, last_name, profession, state, license_n
         record.pop("fields", None)
     if len(records) > 1:
         return result("ambiguous", match_count=len(records), records=records[:5])
-    return result(_normalize_status(records[0]["status_text"]), match_count=1, records=records)
+    extra = {"source_url": records[0]["board_url"]} if records[0].get("board_url") else {}
+    return result(_normalize_status(records[0]["status_text"]), match_count=1, records=records, **extra)
 
 
 @beta_tool
