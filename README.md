@@ -55,6 +55,25 @@ Coordinator (Claude, via Tool Runner)
   -> synthesized verdict: GO / NEEDS REVIEW / NO-GO, cited
 ```
 
+## Facilities tab: verified clinicians matched to an opening
+
+The home page Facilities tab (`api/match.py`, `src/clinician_match.py`) takes a
+facility's city, state, profession, setting and (for physicians) specialty and
+returns up to 5 matched clinicians:
+
+- Credentialai physicians who turned on "Let employers find me" and whose
+  latest verification is GO come first, marked "Open to offers".
+- The rest come from the public NPPES NPI Registry (practice address in that
+  city, or the state if too few), labelled "Licensed nearby, not yet on
+  Credentialai". Up to 7 are checked on the spot with the same sanctions and
+  license tools as a verification; anyone with a sanction or a lapsed license is
+  left out.
+- Fit (location, specialty, setting, checks) becomes a match %, and Claude
+  writes each match's one-line reason. Each match has a PDF report.
+
+Searches share the 3-per-visitor limit and owner pass with `/api/verify`
+(`src/visitor_limit.py`).
+
 ## Matching (employers that are hiring)
 
 Once a clinician clears verification (GO), the coordinator matches them to
@@ -114,7 +133,8 @@ every request and only reads or writes that physician's rows; `src/supa.py`
 talks to Supabase's REST API with the service role key, which never leaves the
 server. Claims are self-attested in Phase 1 (checkbox plus a registry check
 that the NPI carries the physician's last name and profession, and one account
-per NPI); no profile is shown to employers. Preferences (setting, minimum pay,
+per NPI); a profile is shown to employers only when the physician turns on
+"Let employers find me" (see the Facilities tab below). Preferences (setting, minimum pay,
 job type, contract type) filter and re-rank matches; area (near me or the whole state) and up to
 two extra cities widen the job searches (`src/prefs.py`).
 

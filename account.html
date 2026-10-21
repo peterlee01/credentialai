@@ -211,6 +211,7 @@
             <input id="alsoCity1" type="text" placeholder="City, ST" maxlength="45" autocomplete="off" />
             <input id="alsoCity2" type="text" placeholder="City, ST" maxlength="45" autocomplete="off" style="margin-top:0.5rem" /></div>
         </div>
+        <label class="check" style="margin-top:1rem"><input type="checkbox" id="discoverable" /> <span>Let employers find me. Facilities searching for your profession in your state see your name, specialty, city and verified status, marked "Open to offers". Your email and contact details are never shown.</span></label>
         <div class="actions">
           <button class="btn-primary" type="submit" id="updateBtn">Save and update my jobs</button>
           <span class="note" id="runsLeft"></span>
@@ -352,6 +353,7 @@
     $('minPay').value = prefs.min_pay || '';
     $('employment').value = prefs.employment || '';
     $('contract').value = prefs.contract || '';
+    $('discoverable').checked = !!prefs.discoverable;
     $('area').value = prefs.area || '';
     $('areaState').textContent = 'Anywhere in ' + (p.state || 'my state');
     var also = prefs.also_cities || [];
@@ -445,7 +447,8 @@
     if (bad.length) { $('updateBtn').disabled = false; msg('verifyError', 'Enter cities as City, ST, for example Seattle, WA.'); return; }
     msg('verifyError');
     api('POST', { action: 'prefs', prefs: { setting: $('setting').value, min_pay: $('minPay').value, employment: $('employment').value,
-                                            contract: $('contract').value, area: $('area').value, also_cities: also } })
+                                            contract: $('contract').value, area: $('area').value, also_cities: also,
+                                            discoverable: $('discoverable').checked } })
       .then(function (r) {
         if (r.status !== 200) { $('updateBtn').disabled = false; msg('verifyError', r.data.error); return; }
         runUpdate();
