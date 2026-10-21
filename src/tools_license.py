@@ -238,6 +238,9 @@ def _check_vendor(code: str, first_name, last_name, profession, state, license_n
                            "source_url": "https://licenseverificationapi.com", "state": state,
                            "profession": profession, "status": status, **extra})
 
+    if not license_vendor.covers(profession, code):
+        return result("unverified", note=f"No automatic license source covers {profession}s in {state} yet. "
+                                         "A person needs to confirm the license with the state board.")
     # License Verify looks licenses up by number only, so the number has to come from the
     # registry: the one the coordinator passed, or the registry's number for this state.
     license_number = _registry_license(first_name, last_name, profession, code) or license_number
@@ -258,9 +261,9 @@ def _check_vendor(code: str, first_name, last_name, profession, state, license_n
         returned = found.get("returned") or 0
         note = (f"License Verify returned {returned} record{'s' if returned != 1 else ''} for this search, but none "
                 f"matched this name ({found.get('sample', '')})." if returned else
-                f"License Verify found no {state} {profession} license numbered {license_number}. Its coverage may "
-                f"not include {profession}s in {state}, so this doesn't mean the person is unlicensed; a person "
-                "needs to confirm the license with the state board.")
+                f"License Verify found no {state} {profession} license numbered {license_number}. The number may be "
+                "listed differently by the board, so this doesn't mean the person is unlicensed; a person needs "
+                "to confirm the license with the state board.")
         return result("not_found", match_count=0, note=note)
     if not records[0]["status_text"].strip():
         print(f"[license-vendor] record without a recognised status: {records[0]['fields']}")
