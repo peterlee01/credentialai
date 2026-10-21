@@ -69,32 +69,33 @@ def _words(value) -> list:
     return re.findall(r"[a-z]+", str(value or "").lower())
 
 
-def _records(data) -> list:
-    """The license records in a response: a list under a usual key, or the object itself."""
+_RESULT_LISTS = ("results", "data", "licenses", "matches", "records", "items", "providers", "licensees")
+_WRAPPERS = ("data", "result", "record", "verification")
+
+
+def _records(data):
+    """(records, recognised) for a response. Records come from a results list under a usual key,
+    a wrapper object such as {"data": {...}}, or the object itself when it has a status. Other
+    lists (e.g. an empty list of disciplinary actions) are never taken for the results."""
     if isinstance(data, list):
-        return [r for r in data if isinstance(r, dict)]
+        return [r for r in data if isinstance(r, dict)], True
     if not isinstance(data, dict):
-        return []
-    for key in ("results", "data", "licenses", "matches", "records", "items"):
-        value = data.get(key)
-        if isinstance(value, list):
-            return [r for r in value if isinstance(r, dict)]
-    # Any other list of records, e.g. {"data": {"providers": [...]}} or {"data": {"licenses": []}}.
-    lists = [v for v in data.values() if isinstance(v, list) and all(isinstance(r, dict) for r in v)]
-    if len(lists) == 1:
-        return lists[0]
-    for key in ("data", "result", "record", "verification"):
+        return [], False
+    for key in _RESULT_LISTS:
+        if isinstance(data.get(key), list):
+            return [r for r in data[key] if isinstance(r, dict)], True
+    for key in _WRAPPERS:
         if isinstance(data.get(key), dict):
-            return _records(data[key])
-    # One license, possibly nested ({"license": {...}, "licensee": {...}}).
-    return [data] if _key(_flatten(data), r"status", r"standing") else []
-
-
-def _has_list(data) -> bool:
-    """Whether a list (of results, possibly empty) sits anywhere in the response."""
-    if isinstance(data, list):
-        return True
-    return isinstance(data, dict) and any(_has_list(v) for v in data.values())
+            records, recognised = _records(data[key])
+            if recognised:
+                return records, True
+    flat = {k: v for k, v in _flatten(data).items() if not isinstance(v, list)}
+    if _key(flat, r"status", r"license_?status", r"standing", r"\w*_status"):
+        return [data], True
+    lists = [v for v in data.values() if isinstance(v, list) and v and all(isinstance(r, dict) for r in v)]
+    if len(lists) == 1:
+        return lists[0], True
+    return [], False
 
 
 def _describe(data) -> str:
@@ -149,11 +150,11 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
         print(f"[license-vendor] HTTP {resp.status_code}: {json.dumps(data)[:300]}")
         return {"note": f"License Verify returned an error ({resp.status_code}{': ' + str(message)[:80] if message else ''})."}
     else:
-        records = _records(data)
-        if data and not records and not _has_list(data):
+        records, recognised = _records(data)
+        if not recognised:
             print(f"[license-vendor] unrecognised response: {json.dumps(data)[:500]}")
             return {"note": f"License Verify's response couldn't be read automatically ({_describe(data)})."}
-        out, unnamed = {"records": [], "returned": len(records)}, 0
+        out, unnamed = {"records": [], "returned": len(records), "response": _describe(data)}, 0
         if records:
             out["sample"] = _describe(records[0])
         for record in records:
