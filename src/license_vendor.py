@@ -22,13 +22,24 @@ DEFAULT_URL = "https://licenseverificationapi.com/api/v1/verify"
 CACHE_TTL_SECONDS = 24 * 60 * 60
 _cache = {}
 
-# How the vendor names each profession; sent alongside the other search fields.
-_PROFESSIONS = {"physician": "physician", "psychologist": "psychologist",
-                "counselor": "counselor", "social worker": "social worker"}
+# How the vendor names each profession.
+_PROFESSIONS = {"physician": "physician"}
+
+# States each profession is covered in, from License Verify's coverage matrix
+# (licenseverificationapi.com/coverage, October 2026). It has no psychologist, counselor or
+# social worker rows. Update this when their coverage grows.
+COVERAGE = {
+    "physician": {"AK", "AL", "CA", "CO", "CT", "DE", "FL", "IL", "MA", "MD", "ME", "MI", "MO", "NH", "NJ", "NY",
+                  "OH", "RI", "TN", "TX", "VT", "WA", "WV"},
+}
 
 
 def configured() -> bool:
     return bool(os.environ.get("LICENSE_VERIFY_API_KEY"))
+
+
+def covers(profession: str, state_code: str) -> bool:
+    return state_code.upper() in COVERAGE.get(profession, set())
 
 
 def _key(record: dict, *patterns) -> str:
@@ -122,7 +133,7 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
         return cached[1]
 
     # The API looks up one license by number; the name is checked against what it returns.
-    params = {"state": state_code, "profession": _PROFESSIONS.get(profession, profession),
+    params = {"state": state_code, "profession": _PROFESSIONS[profession],
               "license_number": license_number.strip()}
     try:
         resp = requests.get(os.environ.get("LICENSE_VERIFY_URL") or DEFAULT_URL, params=params, timeout=20,
