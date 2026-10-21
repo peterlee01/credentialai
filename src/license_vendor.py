@@ -170,12 +170,17 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
                 "license_number": record.get(_key(record, r"license_?number", r"license_?no")),
                 "license_type": record.get(_key(record, r"license_?type", r"type", r"profession", r"credential")),
                 "status_text": str(record.get(status_key) or ""),
-                "expiration_date": str(record.get(_key(record, r"expir\w*", r"expires_?\w*", r"valid_?(until|to|through)"))
+                "expiration_date": str(record.get(_key(record, r"expir\w*", r"expires_?\w*", r"valid_?(until|to|through)",
+                                                       r"good_?through", r"\w*renewal_?date", r"renew_?by",
+                                                       r"\w*end_?date", r"\w*_until", r"\w*_through"))
                                        or "")[:10] or None,
                 "board": record.get(_key(record, r"source_?board", r"board", r"source", r"issuing_?\w*")),
                 "discipline_on_record": bool(record.get(_key(record, r"disciplin\w*", r"\w*actions?"))),
                 "fields": sorted(record)[:25],
             })
+        for record in out["records"]:
+            if record["status_text"] and not record["expiration_date"]:
+                print(f"[license-vendor] no expiration date recognised; record fields: {record['fields']}")
         if unnamed and not out["records"]:
             return {"note": "License Verify's records don't name the license holder, so they can't be "
                             "matched to this person."}
