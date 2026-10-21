@@ -167,7 +167,7 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
                 continue
             status_key = _key(record, r"status", r"license_?status", r"standing", r"\w*_status", r"\w*standing")
             out["records"].append({
-                "license_number": record.get(_key(record, r"license_?number", r"license_?no")),
+                "license_number": record.get(_key(record, r"license_?number", r"license_?no")) or license_number,
                 "license_type": record.get(_key(record, r"license_?type", r"type", r"profession", r"credential")),
                 "status_text": str(record.get(status_key) or ""),
                 "expiration_date": str(record.get(_key(record, r"expir\w*", r"expires_?\w*", r"valid_?(until|to|through)",
@@ -176,11 +176,11 @@ def lookup(first_name: str, last_name: str, profession: str, state_code: str, li
                                        or "")[:10] or None,
                 "board": record.get(_key(record, r"source_?board", r"board", r"source", r"issuing_?\w*")),
                 "discipline_on_record": bool(record.get(_key(record, r"disciplin\w*", r"\w*actions?"))),
+                "data_as_of": str(record.get(_key(record, r"data_as_of", r"last_verified_at", r"retrieved_at")) or "")[:10]
+                              or None,
+                "board_url": record.get(_key(record, r"provenance_source_url", r"source_url")),
                 "fields": sorted(record)[:25],
             })
-        for record in out["records"]:
-            if record["status_text"] and not record["expiration_date"]:
-                print(f"[license-vendor] no expiration date recognised; record fields: {record['fields']}")
         if unnamed and not out["records"]:
             return {"note": "License Verify's records don't name the license holder, so they can't be "
                             "matched to this person."}

@@ -81,6 +81,10 @@ def build_summary(first_name: str, last_name: str, state: str, profession: str, 
                      f"status {record.get('status_text') or 'unknown'}"]
             if record.get("expiration_date"):
                 parts.append(f"expires {_long_date(record['expiration_date'])}")
+            elif record.get("data_as_of"):
+                parts.append("the board's roster doesn't list an expiry date")
+            if record.get("data_as_of"):
+                parts.append(f"board roster as of {_long_date(record['data_as_of'])}")
             parts.append("discipline on record" if record.get("discipline_on_record") else "no discipline on record")
             license_detail = ", ".join(parts) + "."
         elif license_.get("note"):
