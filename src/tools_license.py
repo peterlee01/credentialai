@@ -226,6 +226,12 @@ def _check_vendor(code: str, first_name, last_name, profession, state, license_n
         records = exact or records
     if not records:
         return result("not_found", match_count=0)
+    if not records[0]["status_text"].strip():
+        print(f"[license-vendor] record without a recognised status: {records[0]['fields']}")
+        return result("unverified", note="License Verify's record couldn't be read automatically (fields: "
+                                         + ", ".join(records[0]["fields"]) + "). A person needs to confirm license status.")
+    for record in records:
+        record.pop("fields", None)
     if len(records) > 1:
         return result("ambiguous", match_count=len(records), records=records[:5])
     return result(_normalize_status(records[0]["status_text"]), match_count=1, records=records)
