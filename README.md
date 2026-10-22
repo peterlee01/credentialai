@@ -55,24 +55,24 @@ Coordinator (Claude, via Tool Runner)
   -> synthesized verdict: GO / NEEDS REVIEW / NO-GO, cited
 ```
 
-## Facilities tab: verified clinicians matched to an opening
+## Facilities tab: AI-matched physicians
 
-The home page Facilities tab (`api/match.py`, `src/clinician_match.py`) takes a
-facility's city, state, profession, setting and (for physicians) specialty and
-returns up to 5 matched clinicians:
+On the home page Facilities tab, a facility verifies a named physician
+(`api/verify.py`). While the verification runs, `src/clinician_match.py` finds
+up to 5 similar physicians (same profession and, for physicians, specialty, near
+the checked physician's practice city):
 
 - Credentialai physicians who turned on "Let employers find me" and whose
   latest verification is GO come first, marked "Open to offers".
 - The rest come from the public NPPES NPI Registry (practice address in that
-  city, or the state if too few), labelled "Licensed nearby, not yet on
-  Credentialai". Up to 7 are checked on the spot with the same sanctions and
-  license tools as a verification; anyone with a sanction or a lapsed license is
-  left out.
-- Fit (location, specialty, setting, checks) becomes a match %, and Claude
-  writes each match's one-line reason. Each match has a PDF report.
+  city, or the state if too few). Up to 7 are checked on the spot with the same
+  sanctions and license tools as a verification; anyone with a sanction or a
+  lapsed license is left out.
+- Fit (location, specialty, checks) becomes a match %, and Claude writes each
+  match's one-line reason. Each match has contact links (Request an intro for
+  open-to-offers physicians, the practice phone, the NPI record) and a PDF report.
 
-Searches share the 3-per-visitor limit and owner pass with `/api/verify`
-(`src/visitor_limit.py`).
+The per-visitor limit and owner pass live in `src/visitor_limit.py`.
 
 ## Matching (employers that are hiring)
 
