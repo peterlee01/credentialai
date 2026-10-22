@@ -229,7 +229,10 @@ class handler(BaseHTTPRequestHandler):
             matches = build_facility_matches(tool_calls, notes=notes, prefs=profile.get("prefs"))
         except Exception as exc:
             matches = None
-            notes.append(f"matching crashed ({exc.__class__.__name__})")
+            notes.append(f"matching crashed ({exc!r})")
+        if matches is None and not any(t["name"] == "match_facilities" for t in tool_calls):
+            notes.append("matching didn't run: the verification called "
+                         + (", ".join(t["name"] for t in tool_calls) or "no tools"))
         for note in notes:
             print(f"[matching] {note}")
         report_id = uuid.uuid4().hex[:12].upper()
@@ -248,4 +251,5 @@ class handler(BaseHTTPRequestHandler):
         })
         print(f"[account] verification {saved and saved.get('id')} report {report_id} for user {user['id']}")
         self._send(200, {"verdict_text": verdict_text, "summary": summary, "facility_matches": matches,
-                         "report": report, "runs_left": runs_left - 1})
+                         "report": report, "runs_left": runs_left - 1,
+                         "notes": notes})  # job-search details, shown on the page with ?debug
