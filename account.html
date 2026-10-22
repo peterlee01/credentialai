@@ -76,6 +76,10 @@
   .badge.nogo { color: var(--danger); background: var(--danger-dim); border-color: #fb2c3655; }
   /* Result cards (same design as the home page results) */
   .mock { background: #0a0b0d; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 1.4rem; margin-top: 1rem; }
+  .more-jobs { align-items: center; }
+  .mock-row[hidden] { display: none; }
+  .google-jobs { color: var(--heading); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  .google-jobs:hover { color: var(--accent); }
   .mock.t-cred { border-color: var(--accent); } .mock.t-match { border-color: var(--match); }
   .mock-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.9rem; }
   .mock-person { display: flex; align-items: center; gap: 0.7rem; }
@@ -322,9 +326,41 @@
                 return { contractor: 'Contract', 'per-diem': 'Per diem', locums: 'Locums' }[t] || t;
               })).filter(Boolean).join(' · ')) + '</span>' : '') + '</li>';
           }).join('') + '</ul>' : '';
-        return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' + jobs + '</div>' +
+        return '<div class="mock-row top' + (i >= JOBS_SHOWN ? ' more-job' : '') + '"' + (i >= JOBS_SHOWN ? ' hidden' : '') + '><div class="l"><b>' +
+          (i + 1) + ' · ' + esc(m.name) + '</b><small>' + esc(meta) + '</small>' + jobs + '</div>' +
           (m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '') + '</div>';
-      }).join('') + '</div>';
+      }).join('') + '</div>' + moreJobsFooter();
+    $('moreJobs').addEventListener('click', searchMoreJobs);
+  }
+
+  // ---------- "Search more jobs" ----------
+  var JOBS_SHOWN = 5;
+  var currentProfile = null;
+  function googleJobsUrl() {
+    var p = currentProfile || {};
+    var place = [p.practice_city, p.state].filter(Boolean).join(', ');
+    return 'https://www.google.com/search?ibp=htg;jobs&q=' + encodeURIComponent((p.profession || 'physician') + ' jobs near ' + place);
+  }
+  function moreJobsFooter() {
+    return '<div class="actions more-jobs"><button class="btn-ghost" type="button" id="moreJobs">Search more jobs</button>' +
+      '<a class="google-jobs" href="' + esc(googleJobsUrl()) + '" target="_blank" rel="noopener">See all on Google Jobs ↗</a></div>' +
+      '<p class="note hidden" id="moreJobsNote"></p>';
+  }
+  function searchMoreJobs() {
+    var hidden = Array.prototype.slice.call(document.querySelectorAll('#jobsResult .more-job[hidden]'));
+    if (hidden.length) {
+      hidden.slice(0, JOBS_SHOWN).forEach(function (row) { row.hidden = false; });
+      return;
+    }
+    // Every match is showing: widen the search to the whole state, which runs an update.
+    if ($('area').value !== 'state') {
+      if ($('updateBtn').disabled) { msg('moreJobsNote', 'No updates left today. Come back tomorrow for more jobs.'); return; }
+      $('area').value = 'state';
+      msg('moreJobsNote', 'Searching all of ' + ((currentProfile && currentProfile.state) || 'your state') + '…');
+      $('prefsForm').requestSubmit ? $('prefsForm').requestSubmit() : $('updateBtn').click();
+      return;
+    }
+    msg('moreJobsNote', 'These are all the matches across your state. Add a city under "Also open to", or see every listing on Google Jobs.');
   }
   function setBadge(verdictText, when) {
     var v = verdictClass(verdictText), badge = $('verifiedBadge');
@@ -346,6 +382,7 @@
   var autoRan = false;
   function renderDash(d) {
     var p = d.profile;
+    currentProfile = p;
     $('profileLine').innerHTML = '<b>' + esc(p.first_name + ' ' + p.last_name) + '</b> · NPI ' + esc(p.npi) + '<br>' +
       esc([p.specialty || p.profession, p.practice_city, p.state].filter(Boolean).join(' · '));
     var prefs = p.prefs || {};
@@ -382,11 +419,6 @@
     return api('POST', { action: 'verify' }).then(function (r) {
       if (r.status !== 200) { $('jobsResult').innerHTML = ''; msg('verifyError', r.data.error); refresh(); return; }
       showResult(Object.assign({ created_at: new Date().toISOString() }, r.data));
-      if (/[?&]debug\b/.test(location.search) && r.data.notes) {
-        $('jobsResult').insertAdjacentHTML('beforeend', '<div class="note" style="margin-top:1rem"><b>Job search details</b><ul>' +
-          (r.data.notes.length ? r.data.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') : '<li>No details recorded.</li>') +
-          '</ul></div>');
-      }
       setRunsLeft(r.data.runs_left);
     }).catch(function () { $('jobsResult').innerHTML = ''; msg('verifyError', 'Network error. Please try again.'); $('updateBtn').disabled = false; });
   }

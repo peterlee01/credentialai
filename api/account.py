@@ -226,7 +226,8 @@ class handler(BaseHTTPRequestHandler):
         summary = build_summary(first, last, state, profession, tool_calls)
         notes = []
         try:
-            matches = build_facility_matches(tool_calls, notes=notes, prefs=profile.get("prefs"))
+            # Up to 10: the page shows 5 and "Search more jobs" reveals the rest.
+            matches = build_facility_matches(tool_calls, limit=10, notes=notes, prefs=profile.get("prefs"))
         except Exception as exc:
             matches = None
             notes.append(f"matching crashed ({exc!r})")
@@ -251,5 +252,4 @@ class handler(BaseHTTPRequestHandler):
         })
         print(f"[account] verification {saved and saved.get('id')} report {report_id} for user {user['id']}")
         self._send(200, {"verdict_text": verdict_text, "summary": summary, "facility_matches": matches,
-                         "report": report, "runs_left": runs_left - 1,
-                         "notes": notes})  # job-search details, shown on the page with ?debug
+                         "report": report, "runs_left": runs_left - 1})
