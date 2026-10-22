@@ -163,7 +163,7 @@ def shortlist_facilities(profession: str, state: str, specialty: str = "",
 
 # Agencies that post roles at other organisations' sites; a match should be the employer itself.
 _STAFFING = r"staffing|locum|recruit|\bamn\b|\baya\b|sunbelt|healthstaff|travel (nurse|therap)|placement|" \
-    r"\btalent\b|search group|workforce"
+    r"\btalent\b|search group|workforce|personnel|\bexams?\b|\bmrg\b|\bwsi\b|examworks"
 _BEHAVIORAL_EMPLOYER = r"behavior|mental|psych|counsel|therap|wellness|recovery|mind"
 _PHYSICIAN_EMPLOYER = r"medical|clinic|health|hospital|physician|medicine|care"
 HIRING_SHORTLIST = 8
