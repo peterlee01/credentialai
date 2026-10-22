@@ -364,7 +364,7 @@
       <a href="#physicians" id="navPhys">For physicians</a>
     </div>
     <div class="nav-right">
-      <a class="nav-cta" href="#verify">Try the live demo</a>
+      <a class="nav-cta" href="early-access.html">Plans - Early Access</a>
     </div>
   </div>
 </nav>
@@ -403,7 +403,7 @@
         </div>
         <div id="paneFacilities" role="tabpanel" aria-labelledby="tabFacilities">
         <p class="tab-hint">For hospitals, staffing agencies and health plans. Check any clinician.</p>
-        <p class="panel-label">Run a verification and match</p>
+        <p class="panel-label">Run 3 Free Verifications and Matches</p>
         <form id="verifyForm">
           <div class="row2">
             <div class="field"><label for="fn">First name</label><input id="fn" required /></div>
@@ -451,7 +451,7 @@
               </select>
             </div>
           </div>
-          <button class="run" type="submit" id="runBtn">Run verification</button>
+          <button class="run" type="submit" id="runBtn">Run free verification</button>
         </form>
         <div id="result"></div>
         </div>
@@ -915,7 +915,7 @@
 
     request
       .then(function (r) {
-        btn.textContent = 'Run verification';
+        btn.textContent = 'Run free verification';
         if (r.status === 429) {
           btn.disabled = true;
           renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 free verifications.</div></div>' + plansCta(0));
@@ -992,7 +992,7 @@
       })
       .catch(function (err) {
         btn.disabled = false;
-        btn.textContent = 'Run verification';
+        btn.textContent = 'Run free verification';
         renderResult('<div class="verdict-box error"><div class="verdict-title">Network error</div><div class="verdict-explain">' + err.message + '</div></div>');
       });
   });
