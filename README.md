@@ -74,6 +74,28 @@ the checked physician's practice city):
 
 The per-visitor limit and owner pass live in `src/visitor_limit.py`.
 
+## Facility accounts (Phase 1: early access)
+
+`/facilities` (`facility.html`, `api/facility.py`) lets a facility sign in with
+an emailed link (the same Supabase project as physician accounts), add its
+details, and run the same verification and AI matching as the home page
+(`src/check_and_match.py`). Every run is saved (`facility_runs`) so results and
+their PDFs can be reopened, and "Request an intro" on an open-to-offers match
+is stored in `intro_requests`.
+
+- Until approved, a facility gets 3 verifications in total; approve it in
+  Supabase (Table Editor -> facilities -> `approved` = true) and it gets
+  `monthly_limit` (default 25) per calendar month.
+- With `RESEND_API_KEY` set in Vercel, new sign-ups and intro requests are
+  emailed to info@credentialai.co; without it, check the tables.
+
+Setup: run `supabase/facilities.sql` in the SQL Editor, and add
+`https://credentialai.co/facilities` to Authentication -> URL Configuration ->
+Redirect URLs.
+
+The home page nav's **Sign in** opens a menu for the physician or facility
+account.
+
 ## Matching (employers that are hiring)
 
 Once a clinician clears verification (GO), the coordinator matches them to

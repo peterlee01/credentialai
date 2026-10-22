@@ -1,8 +1,10 @@
 {
   "redirects": [
-    { "source": "/account.html", "destination": "/physicians", "permanent": true }
+    { "source": "/account.html", "destination": "/physicians", "permanent": true },
+    { "source": "/facility.html", "destination": "/facilities", "permanent": true }
   ],
   "rewrites": [
-    { "source": "/physicians", "destination": "/account.html" }
+    { "source": "/physicians", "destination": "/account.html" },
+    { "source": "/facilities", "destination": "/facility.html" }
   ]
 }
