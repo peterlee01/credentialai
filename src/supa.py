@@ -100,3 +100,11 @@ def delete_user(user_id: str):
     url, _, _ = _env()
     resp = requests.delete(f"{url}/auth/v1/admin/users/{user_id}", headers=_headers(), timeout=TIMEOUT)
     resp.raise_for_status()
+
+
+def delete_rows(table: str, match: dict):
+    """Delete the rows matching every column in `match`."""
+    url, _, _ = _env()
+    params = {k: f"eq.{v}" for k, v in match.items()}
+    resp = requests.delete(f"{url}/rest/v1/{table}", params=params, headers=_headers(), timeout=TIMEOUT)
+    resp.raise_for_status()

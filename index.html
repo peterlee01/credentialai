@@ -69,6 +69,21 @@
   .nav-right { display: flex; align-items: center; gap: 1.4rem; }
   .nav-cta { padding: 0.55rem 1.1rem; background: var(--gradient-accent); color: #04120d; border-radius: 999px; text-decoration: none; font-size: 0.85rem; font-weight: 700; }
   @media (max-width: 760px) { .nav-links { display: none; } }
+  .signin { position: relative; }
+  .signin-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 0.88rem; color: var(--text); opacity: .85; cursor: pointer; }
+  .signin-btn:hover, .signin-btn[aria-expanded="true"] { opacity: 1; color: var(--accent); }
+  .signin-menu { position: absolute; right: 0; top: calc(100% + 0.8rem); width: 17rem; background: var(--panel); border: 1px solid var(--border-strong-2); border-radius: var(--radius-lg); padding: 0.4rem; box-shadow: 0 20px 40px -12px #000000cc; z-index: 60; }
+  .signin-menu a { display: block; padding: 0.7rem 0.85rem; border-radius: 0.6rem; text-decoration: none; }
+  .signin-menu a:hover, .signin-menu a:focus-visible { background: var(--panel-2); outline: none; }
+  .signin-btn, .nav-cta { white-space: nowrap; }
+  @media (max-width: 520px) {
+    .cta-long { display: none; }
+    .nav-right { gap: 1rem; }
+    .signin { position: static; }
+    .signin-menu { position: absolute; left: 1rem; right: 1rem; width: auto; top: calc(100% - 0.3rem); }
+  }
+  .signin-menu b { display: block; color: var(--heading); font-size: 0.92rem; }
+  .signin-menu small { display: block; color: var(--muted); font-size: 0.8rem; line-height: 1.4; }
 
   /* ---------- Hero ---------- */
   .hero-wrap {
@@ -364,7 +379,14 @@
       <a href="#physicians" id="navPhys">For physicians</a>
     </div>
     <div class="nav-right">
-      <a class="nav-cta" href="early-access.html">Plans - Early Access</a>
+      <div class="signin">
+        <button class="signin-btn" id="signInToggle" type="button" aria-expanded="false" aria-controls="signInMenu">Sign in</button>
+        <div class="signin-menu" id="signInMenu" hidden>
+          <a href="/physicians"><b>I'm a physician</b><small>Your jobs and verified profile</small></a>
+          <a href="/facilities"><b>I'm a facility</b><small>Verifications and AI-matched physicians</small></a>
+        </div>
+      </div>
+      <a class="nav-cta" href="early-access.html">Plans<span class="cta-long"> - Early Access</span></a>
     </div>
   </div>
 </nav>
@@ -824,6 +846,13 @@
       });
     });
   }
+  // Sign in: a small menu to choose the physician or facility account.
+  var signInToggle = document.getElementById('signInToggle'), signInMenu = document.getElementById('signInMenu');
+  function setSignInMenu(open) { signInMenu.hidden = !open; signInToggle.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+  signInToggle.addEventListener('click', function (e) { e.stopPropagation(); setSignInMenu(signInMenu.hidden); });
+  document.addEventListener('click', function (e) { if (!signInMenu.contains(e.target)) setSignInMenu(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setSignInMenu(false); });
+
   // Signed-in physicians see a welcome back card instead of the sign-up form.
   function physEsc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
@@ -860,6 +889,7 @@
     placePanel();
   }
   if (physHasSession()) {
+    signInToggle.textContent = 'My account';
     physSupabase().then(function (client) { return client.auth.getSession(); }).then(function (r) {
       var t = r.data.session && r.data.session.access_token;
       if (!t) return null;
