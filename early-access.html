@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Early Access — Credentialai</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Credentialai plans for facilities: physician verification and AI matching, from a free tier to enterprise, with ongoing license and sanctions monitoring. Now in early access." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d; --panel: #12131a; --border: #1b1d23; --border-strong: #ffffff1a; --border-strong-2: #ffffff33;
+    --text: #c2cad6; --heading: #f2f4f7; --muted: #94a3b8; --muted-2: #64748b;
+    --accent: #00d4aa; --accent-2: #4a9eff; --accent-dim: #00d4aa1a; --match-dim: #4a9eff1a;
+    --radius: .75rem; --radius-lg: 1rem;
+    --gradient-accent: linear-gradient(90deg, var(--accent), var(--accent-2));
+    --display: "Space Grotesk", ui-sans-serif, sans-serif;
+    --sans: "Inter", -apple-system, "Segoe UI", ui-sans-serif, sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 16px; line-height: 1.7; }
+  a { color: inherit; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+  nav.top { max-width: 1160px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 1.35rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .word { font-family: var(--display); font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: var(--heading); }
+  .logo-mark { position: relative; width: 1.6rem; height: 1.6rem; flex: none; }
+  .logo-mark span { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; }
+  .logo-mark .r1 { border-top-color: var(--accent); border-right-color: var(--accent); opacity: .8; animation: spin 4s linear infinite; }
+  .logo-mark .r2 { inset: 3px; border-bottom-color: var(--accent-2); border-left-color: var(--accent-2); opacity: .7; animation: spin 3s linear infinite reverse; }
+  .logo-mark .dot { position: absolute; inset: 0; margin: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .word .ai { color: var(--accent); }
+  .back { font-size: 0.85rem; color: var(--muted); text-decoration: none; }
+  .back:hover { color: var(--accent); }
+  main { padding: 4.5rem 0 5rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin: 0 0 1rem; font-weight: 600; }
+  h1 { font-family: var(--display); font-size: 2.6rem; font-weight: 700; color: var(--heading); margin: 0 0 1.2rem; line-height: 1.15; max-width: 22ch; }
+  h2 { font-family: var(--display); font-size: 1.6rem; color: var(--heading); margin: 4rem 0 0.6rem; line-height: 1.25; }
+  .lead { font-size: 1.1rem; max-width: 62ch; margin: 0 0 2rem; }
+  .btn-primary, .btn-ghost { display: inline-flex; align-items: center; justify-content: center; padding: 0.8rem 1.5rem; border-radius: 999px; font-weight: 700; font-size: 0.92rem; text-decoration: none; }
+  .btn-primary { background: var(--gradient-accent); color: #04120d; }
+  .btn-ghost { border: 1px solid var(--border-strong-2); color: var(--heading); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.1rem; margin-top: 1.6rem; }
+  @media (min-width: 1000px) { .plans { grid-template-columns: repeat(5, 1fr); gap: 0.9rem; } .plan { padding: 1.3rem; } }
+  .plan { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; display: flex; flex-direction: column; }
+  .plan.featured { border-color: var(--accent); box-shadow: 0 0 0 1px #00d4aa33, 0 20px 40px -20px #00d4aa40; }
+  .plan .tag { align-self: flex-start; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid var(--border-strong-2); color: var(--muted); margin-bottom: 0.9rem; }
+  .plan.featured .tag { color: var(--accent); border-color: #00d4aa55; background: var(--accent-dim); }
+  .plan h3 { font-family: var(--display); font-size: 1.3rem; color: var(--heading); margin: 0 0 0.3rem; }
+  .plan .for { font-size: 0.9rem; color: var(--muted); margin: 0 0 1rem; }
+  .plan ul { list-style: none; margin: 0; padding: 0; font-size: 0.95rem; }
+  .plan li { position: relative; padding-left: 1.4rem; margin: 0.45rem 0; line-height: 1.5; }
+  .plan li::before { content: ""; position: absolute; left: 0; top: 0.45rem; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--accent); opacity: .85; }
+  .monitor { margin-top: 1.6rem; display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; align-items: start; background: linear-gradient(135deg, var(--match-dim), transparent 60%), var(--panel); border: 1px solid #4a9eff40; border-radius: var(--radius-lg); padding: 2rem; }
+  .monitor p { margin: 0 0 1rem; }
+  .monitor ul { margin: 0; padding-left: 1.2rem; }
+  .monitor li { margin: 0.4rem 0; }
+  .contact { margin-top: 1.6rem; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; }
+  .contact p { max-width: 60ch; }
+  .contact a.mail { font-weight: 600; color: #fff; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  .contact a.mail:hover { color: var(--accent); }
+  .note { font-size: 0.85rem; color: var(--muted-2); margin-top: 1.4rem; }
+  footer.site-footer { border-top: 1px solid var(--border); padding: 2.5rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--muted-2); }
+  @media (max-width: 760px) {
+    h1 { font-size: 2rem; }
+    .monitor { grid-template-columns: 1fr; padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<nav class="top">
+  <a class="word" href="index.html">
+    <span class="logo-mark"><span class="r1"></span><span class="r2"></span><span class="dot"></span></span>
+    Credential<span class="ai">ai</span>
+  </a>
+  <a class="back" href="index.html">← Back to home</a>
+</nav>
+
+<main class="wrap">
+  <p class="eyebrow">Early access</p>
+  <h1>Physician verification and AI matching, for every size of facility</h1>
+  <p class="lead">Credentialai plans are opening to early-access facilities. Verify physicians against primary sources, get AI-matched physicians for every search, and keep your roster checked over time. Tell us what you need and we'll set you up.</p>
+  <div class="actions">
+    <a class="btn-primary" href="mailto:info@credentialai.co?subject=Credentialai%20early%20access">Request early access</a>
+    <a class="btn-ghost" href="index.html#verify">Try the free demo</a>
+  </div>
+
+  <h2>Plans</h2>
+  <p>Each plan includes primary-source checks of identity, sanctions and license, a plain-language verdict, AI-matched physicians and a downloadable verification report.</p>
+  <div class="plans">
+    <article class="plan">
+      <span class="tag">Available now</span>
+      <h3>Free</h3>
+      <p class="for">For trying Credentialai</p>
+      <ul>
+        <li>A few live verifications to see the full workflow</li>
+        <li>AI-matched physicians with contact links</li>
+        <li>Downloadable verification report</li>
+      </ul>
+    </article>
+    <article class="plan">
+      <span class="tag">Early access</span>
+      <h3>Pay as you go</h3>
+      <p class="for">For clinics hiring now and then</p>
+      <ul>
+        <li>No monthly commitment</li>
+        <li>Pay only for the verifications you run</li>
+        <li>Reports saved to your account</li>
+      </ul>
+    </article>
+    <article class="plan featured">
+      <span class="tag">Early access</span>
+      <h3>Starter</h3>
+      <p class="for">For group practices and small hospitals</p>
+      <ul>
+        <li>A monthly bundle of verifications</li>
+        <li>Unlimited AI-matched physician searches</li>
+        <li>Saved reports and a shared team account</li>
+      </ul>
+    </article>
+    <article class="plan">
+      <span class="tag">Early access</span>
+      <h3>Pro</h3>
+      <p class="for">For hospitals and staffing agencies</p>
+      <ul>
+        <li>A larger monthly bundle of verifications</li>
+        <li>Ongoing monitoring of your physician roster</li>
+        <li>More team seats and exports of your results</li>
+      </ul>
+    </article>
+    <article class="plan">
+      <span class="tag">Early access</span>
+      <h3>Enterprise</h3>
+      <p class="for">For health systems and health plans</p>
+      <ul>
+        <li>Volume pricing and API access</li>
+        <li>NCQA-grade credentialing files through our verification partners</li>
+        <li>Single sign-on, contracts and a BAA</li>
+      </ul>
+    </article>
+  </div>
+
+  <h2>Ongoing monitoring</h2>
+  <div class="monitor">
+    <div>
+      <p>Credentialing doesn't end at hire. Licenses lapse, and sanctions can appear at any time. Monitoring rechecks every physician on your roster on a regular schedule and tells you as soon as something changes, so you're not finding out at re-credentialing.</p>
+      <p>Monitoring is part of Pro and Enterprise, and can be added to any plan.</p>
+    </div>
+    <ul>
+      <li>Scheduled rechecks of license status and expiry</li>
+      <li>Sanctions screening against the federal exclusion list</li>
+      <li>Alerts when a status changes, with the record behind it</li>
+      <li>A current verification report for every physician</li>
+    </ul>
+  </div>
+
+  <h2>Talk to us</h2>
+  <div class="contact">
+    <p>Pricing is set with each early-access facility. Tell us your facility type, roughly how many physicians you verify each month, and whether you need monitoring, and we'll recommend a plan.</p>
+    <p>Email <a class="mail" href="mailto:info@credentialai.co?subject=Credentialai%20early%20access">info@credentialai.co</a> or use our <a class="mail" href="contact.html">contact page</a>. We typically respond within a few business days.</p>
+    <div class="actions">
+      <a class="btn-primary" href="mailto:info@credentialai.co?subject=Credentialai%20early%20access">Request early access</a>
+    </div>
+    <p class="note">Plans marked "Early access" are being rolled out with early customers; features and availability may change.</p>
+  </div>
+</main>
+
+<footer class="site-footer">© 2026 Credentialai Systems, Inc. All rights reserved.</footer>
+</body>
+</html>
