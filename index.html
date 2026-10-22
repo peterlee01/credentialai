@@ -306,6 +306,11 @@
   .report-btn { margin-top: 1.1rem; cursor: pointer; background: transparent; font-family: var(--sans); }
   .report-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+  .plans-cta { margin-top: 1rem; padding: 1.4rem; border-radius: var(--radius-lg); border: 1px solid var(--border-strong-2); background: linear-gradient(135deg, var(--accent-dim), transparent 60%), var(--panel); }
+  .plans-left { display: inline-block; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+  .plans-title { margin: 0 0 0.4rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
+  .plans-text { margin: 0 0 1rem; line-height: 1.55; }
+  .plans-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; }
   .match-note { margin: -0.5rem 0 1rem; color: var(--text); font-size: 0.95rem; }
   .match-status { margin: 0.5rem 0 0; }
   .match-reason { margin: 0.5rem 0 0; font-size: 0.95rem; line-height: 1.5; color: var(--text); }
@@ -725,6 +730,18 @@
     });
   }
 
+  // Next step after a result: free searches left, and plans for facilities that need more.
+  function plansCta(runsLeft) {
+    var left = runsLeft == null ? '' : runsLeft > 0
+      ? '<span class="plans-left">' + runsLeft + ' free ' + (runsLeft === 1 ? 'verification' : 'verifications') + ' left</span>'
+      : '<span class="plans-left">No free verifications left</span>';
+    return '<div class="plans-cta">' + left +
+      '<p class="plans-title">Verify and match at scale</p>' +
+      '<p class="plans-text">Credentialai plans include unlimited verifications, more AI-matched physicians per search, and saved reports for your files.</p>' +
+      '<div class="plans-actions"><a class="btn-primary" href="mailto:info@credentialai.co?subject=' + encodeURIComponent('Credentialai plans') + '">Get a plan</a>' +
+      '<a class="btn-ghost" href="contact.html">Talk to us</a></div></div>';
+  }
+
   function phoneText(digits) {
     var d = String(digits || '').replace(/\D/g, '');
     return d.length === 10 ? '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6) : d;
@@ -900,7 +917,7 @@
         btn.textContent = 'Run verification';
         if (r.status === 429) {
           btn.disabled = true;
-          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 live verifications for now. Please check back later.</div></div>');
+          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 free verifications.</div></div>' + plansCta(0));
           return;
         }
         if (r.status !== 200) {
@@ -959,7 +976,7 @@
         } else {
           matchHtml = '<p class="match-empty">AI matching needs a single registry record for this physician, so no matches are shown.</p>';
         }
-        renderResult(verifyCard + matchHtml);
+        renderResult(verifyCard + matchHtml + plansCta(r.data.runs_left));
         var reportBtn = document.getElementById('reportBtn');
         if (reportBtn) reportBtn.addEventListener('click', function () { downloadReport(r.data.report); });
         Array.prototype.forEach.call(resultEl.querySelectorAll('.match-report'), function (a) {
