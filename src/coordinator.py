@@ -125,7 +125,10 @@ def _parse_result(content):
         return None
 
 
-def run_verification(first_name: str, last_name: str, state: str, profession: str, npi: str = ""):
+def run_verification(first_name: str, last_name: str, state: str, profession: str, npi: str = "",
+                     match_facilities_after: bool = True):
+    """Verify one clinician. With match_facilities_after=False (the home page demo, which matches
+    physicians instead), the run stops at the verdict and no facility matching tools are offered."""
     request = {
         "first_name": first_name,
         "last_name": last_name,
@@ -142,13 +145,19 @@ def run_verification(first_name: str, last_name: str, state: str, profession: st
     if npi:
         user_message += f" Their NPI is {npi}; pass it to get_npi_identity to look up that exact record."
 
+    tools = [get_npi_identity, check_sanctions, check_license_status]
+    system = SYSTEM_PROMPT
+    if match_facilities_after:
+        tools += [match_facilities, rank_facility_matches]
+    else:
+        system += "\nFacility matching is not part of this run: skip steps 4 and 5 and finish with the verdict.\n"
+
     client = anthropic.Anthropic()
     runner = client.beta.messages.tool_runner(
         model=MODEL,
         max_tokens=4096,
-        system=SYSTEM_PROMPT,
-        tools=[get_npi_identity, check_sanctions, check_license_status, match_facilities,
-               rank_facility_matches],
+        system=system,
+        tools=tools,
         messages=[{"role": "user", "content": user_message}],
     )
 

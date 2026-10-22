@@ -1,4 +1,4 @@
-"""The live demo's per-visitor limit, shared by /api/verify and /api/match.
+"""The live demo's per-visitor limit, used by /api/verify.
 
 A cookie counts how many runs a browser has used; a best-effort, in-memory
 per-warm-instance IP count backs it up (the privacy policy describes this:

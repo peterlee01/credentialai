@@ -306,11 +306,10 @@
   .report-btn { margin-top: 1.1rem; cursor: pointer; background: transparent; font-family: var(--sans); }
   .report-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-  .match-intro { margin-top: 1.2rem; }
-  .match-intro .result-heading { margin-bottom: 0.3rem; }
-  .match-note { margin: 0; color: var(--text); font-size: 0.95rem; }
-  .match-status { margin: -0.2rem 0 0; }
-  .match-reason { margin: 0.8rem 0 1rem; }
+  .match-note { margin: -0.5rem 0 1rem; color: var(--text); font-size: 0.95rem; }
+  .match-status { margin: 0.5rem 0 0; }
+  .match-reason { margin: 0.5rem 0 0; font-size: 0.95rem; line-height: 1.5; color: var(--text); }
+  .match-contact { margin-top: 0.6rem; }
   .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
   .mock.lg { padding: 1.4rem; }
   .mock.lg .avatar { width: 3rem; height: 3rem; font-size: 1rem; }
@@ -379,7 +378,7 @@
         </a>
         <a class="hero-value t-match" href="#matching">
           <span class="hv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.7 10.6 15.3 7.4M8.7 13.4l6.6 3.2"/></svg></span>
-          <span><b>AI matching</b><span>A ranked list of verified physicians for your opening.</span></span>
+          <span><b>AI matching</b><span>A ranked list of similar, verified physicians.</span></span>
         </a>
       </div>
       <div class="hero-stats">
@@ -398,10 +397,14 @@
           <button class="demo-tab" role="tab" id="tabPhysicians" aria-controls="panePhysicians" aria-selected="false" tabindex="-1" type="button">Physicians</button>
         </div>
         <div id="paneFacilities" role="tabpanel" aria-labelledby="tabFacilities">
-        <p class="tab-hint">For hospitals, staffing agencies and health plans. Find verified clinicians for your opening.</p>
-        <form id="matchForm">
+        <p class="tab-hint">For hospitals, staffing agencies and health plans. Check any clinician.</p>
+        <p class="panel-label">Run a verification and match</p>
+        <form id="verifyForm">
           <div class="row2">
-            <div class="field"><label for="city">Facility city</label><input id="city" required autocomplete="address-level2" placeholder="e.g. Houston" /></div>
+            <div class="field"><label for="fn">First name</label><input id="fn" required /></div>
+            <div class="field"><label for="ln">Last name</label><input id="ln" required /></div>
+          </div>
+          <div class="row2">
             <div class="field">
               <label for="state">State</label>
               <select id="state" required>
@@ -433,8 +436,6 @@
                 <option value="West Virginia">West Virginia</option>
               </select>
             </div>
-          </div>
-          <div class="row2">
             <div class="field">
               <label for="profession">Profession</label>
               <select id="profession" required>
@@ -444,31 +445,6 @@
                 <option value="social worker">Social worker</option>
               </select>
             </div>
-            <div class="field" id="specialtyField">
-              <label for="specialty">Specialty</label>
-              <select id="specialty">
-                <option value="">Any</option>
-                <option>Family Medicine</option>
-                <option>Internal Medicine</option>
-                <option>Hospitalist</option>
-                <option>Psychiatry</option>
-                <option>Pediatrics</option>
-                <option>Emergency Medicine</option>
-                <option>Anesthesiology</option>
-                <option>Obstetrics &amp; Gynecology</option>
-                <option>Cardiology</option>
-                <option>General Surgery</option>
-              </select>
-            </div>
-          </div>
-          <div class="field">
-            <label for="setting">Setting</label>
-            <select id="setting">
-              <option value="">Any</option>
-              <option value="inpatient">Inpatient</option>
-              <option value="outpatient">Outpatient</option>
-              <option value="telehealth">Telehealth</option>
-            </select>
           </div>
           <button class="run" type="submit" id="runBtn">Run verification</button>
         </form>
@@ -533,16 +509,17 @@
         <div>
           <span class="value-kicker">02 · AI matching</span>
           <h3>Get a ranked list of AI-matched physicians</h3>
-          <p>Tell Credentialai about your opening and get the physicians who fit it best, each already checked for identity, sanctions and license, with a match score and the reason they made the list.</p>
+          <p>Verify a physician and get a ranked list of similar physicians nearby, each already checked for identity, sanctions and license, with a match score, the reason they made the list, and a way to contact them.</p>
         </div>
         <ul class="value-list">
-          <li>Weighs location, specialty, setting and verification status</li>
+          <li>Weighs location, specialty and verification status</li>
           <li>Physicians open to offers are listed first</li>
-          <li>Every match comes with its own verification report</li>
+          <li>Every match comes with contact links and a verification report</li>
         </ul>
         <div class="mock" aria-hidden="true">
           <div class="mock-head">
-            <div class="mock-person"><span class="avatar">IM</span><div><b>Internal Medicine opening</b><small>Outpatient · Denver, Colorado</small></div></div>
+            <div class="mock-person"><span class="avatar">SL</span><div><b>Dr. S. Lee</b><small>Internal Medicine · Denver, Colorado</small></div></div>
+            <span class="chip ok">GO</span>
           </div>
           <div class="mock-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
           <div class="mock-row"><div class="l"><b>1 · Dr. A. Rivera</b><small>Open to offers · Verified</small></div><span class="chip fit">94% match</span></div>
@@ -559,42 +536,41 @@
   <div class="wrap">
     <div class="center">
       <p class="band-label">How it works</p>
-      <h2>From an opening to AI-matched physicians <span class="soft">in four steps.</span></h2>
-      <p class="section-dek">Describe the role. Credentialai verifies the physicians near you, then ranks them by fit. Anyone with a sanction or lapsed license is left out.</p>
+      <h2>From a name to AI-matched physicians <span class="soft">in four steps.</span></h2>
+      <p class="section-dek">Identity is confirmed first. Sanctions and license checks then run at the same time. Similar physicians nearby are verified and ranked by fit.</p>
     </div>
-    <div class="phases" aria-hidden="true" style="grid-template-columns: 1fr 1fr 2fr">
-      <div class="phase t-match">Your opening</div>
+    <div class="phases" aria-hidden="true">
       <div class="phase t-cred">Credentialing</div>
       <div class="phase t-match">AI matching</div>
     </div>
     <div class="steps">
-      <div class="step-card t-match">
-        <div class="step-tag">Your opening</div>
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg></div>
+      <div class="step-card t-cred">
+        <div class="step-tag">Credentialing</div>
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
         <div class="step-num">01</div>
-        <h3>Describe your opening</h3>
-        <p>City, state, profession, specialty and setting. That is all it needs.</p>
+        <h3>Enter the physician</h3>
+        <p>Name, state and profession. That is all it needs.</p>
+      </div>
+      <div class="step-card t-cred">
+        <div class="step-tag">Credentialing</div>
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M5 8v2a4 4 0 0 0 4 4h1"/><path d="M19 8v2a4 4 0 0 0-4 4h-1"/></svg></div>
+        <div class="step-num">02</div>
+        <h3>Check the sources</h3>
+        <p>Identity first. Then sanctions and license, side by side.</p>
       </div>
       <div class="step-card t-cred">
         <div class="step-tag">Credentialing</div>
         <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <div class="step-num">02</div>
-        <h3>Verify nearby physicians</h3>
-        <p>Identity, sanctions and license, checked for each one against primary sources.</p>
+        <div class="step-num">03</div>
+        <h3>Get a cited verdict</h3>
+        <p>GO, NEEDS REVIEW or NO-GO, with the record behind it.</p>
       </div>
       <div class="step-card t-match">
         <div class="step-tag">AI matching</div>
         <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.7 10.6 15.3 7.4M8.7 13.4l6.6 3.2"/></svg></div>
-        <div class="step-num">03</div>
-        <h3>Score the fit</h3>
-        <p>Location, specialty, setting and verification become a match score, with the reason in plain words.</p>
-      </div>
-      <div class="step-card t-match">
-        <div class="step-tag">AI matching</div>
-        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg></div>
         <div class="step-num">04</div>
-        <h3>Get a ranked list</h3>
-        <p>AI-matched physicians, open to offers first, each with its own verification report.</p>
+        <h3>See AI-matched physicians</h3>
+        <p>A ranked list of similar, verified physicians nearby, with ways to contact them.</p>
       </div>
     </div>
   </div>
@@ -685,7 +661,7 @@
 
 <script>
 (function () {
-  var form = document.getElementById('matchForm');
+  var form = document.getElementById('verifyForm');
   var btn = document.getElementById('runBtn');
   var resultEl = document.getElementById('result');
 
@@ -708,28 +684,39 @@
   // ?key=... is the owner pass: the server skips the per-visitor limit when it matches DEMO_BYPASS_KEY.
   var OWNER_KEY = params.get('key') || '';
 
-  function sampleResult(city, state, profession) {
-    var checks = function (license) {
-      return [
-        { label: 'Identity', source: 'NPPES NPI Registry', status: 'Match found', tone: 'ok' },
-        { label: 'Sanctions', source: 'HHS-OIG LEIE', status: 'No hits', tone: 'ok' },
-        { label: 'License', source: 'State board', status: license, tone: license === 'Active' ? 'ok' : 'warn' }
-      ];
-    };
-    var c = city || 'Denver';
+  function sampleResult(first, last, state, profession) {
+    var name = (first || 'Timothy') + ' ' + (last || 'Shea');
+    var job = function (title, pay) { return { title: title, pay: pay, link: 'https://www.google.com/search?q=' + encodeURIComponent(title) }; };
     return {
-      runs_left: null, registry_found: 24, opt_in_found: 1, excluded: 1,
-      matches: [
-        { name: 'Sample Physician A', credential: 'MD', specialty: 'Internal Medicine', city: c, open_to_offers: true, match_pct: 93, verdict: 'GO',
-          reason: 'Open to offers, verified, internal medicine in ' + c + ' and wants outpatient work.', checks: checks('Active') },
-        { name: 'Sample Physician B', credential: 'DO', specialty: 'Internal Medicine', city: c, open_to_offers: false, match_pct: 88, verdict: 'GO',
-          reason: 'Internal medicine in ' + c + ' with identity, sanctions and license all clear.', checks: checks('Active') },
-        { name: 'Sample Physician C', credential: 'MD', specialty: 'Family Medicine', city: c, open_to_offers: false, match_pct: 71, verdict: 'GO',
-          reason: 'Family medicine nearby; verified, a reasonable fit for outpatient care.', checks: checks('Active') },
-        { name: 'Sample Physician D', credential: 'MD', specialty: 'Internal Medicine', city: c, open_to_offers: false, match_pct: 64, verdict: 'NEEDS REVIEW',
-          reason: 'Strong specialty fit, but the license needs a person to confirm it.', checks: checks('Needs review') }
-      ]
+      verdict_text: 'GO\nPreview with sample data. ' + name + ' is a clinical ' + profession + ' in Denver listed in the national provider registry. ' +
+        last + ' doesn\'t appear on the federal list of excluded providers, and the ' + state + ' licensing board shows the license as active through August 2027.',
+      runs_left: null,
+      summary: {
+        person: { name: name, initials: (name.split(' ')[0].charAt(0) + (name.split(' ')[1] || '').charAt(0)).toUpperCase(), subtitle: 'Psychologist, Clinical · ' + state },
+        checks: [
+          { label: 'Identity', source: 'NPPES NPI Registry', status: 'Match found', tone: 'ok' },
+          { label: 'Sanctions', source: 'HHS-OIG LEIE', status: 'No hits', tone: 'ok' },
+          { label: 'License', source: 'Colorado DORA', status: 'Active', tone: 'ok' }
+        ],
+        checks_clear: 3
+      },
+      physician_matches: { city: 'Denver', specialty: 'Psychologist, Clinical', excluded: 0, matches: [
+        { name: 'Sample Psychologist A', credential: 'PhD', specialty: 'Psychologist, Clinical', city: 'Denver', npi: '1000000001', phone: '3035550100',
+          open_to_offers: true, match_pct: 94, verdict: 'GO', reason: 'Open to offers, verified, and a clinical psychologist in Denver.' },
+        { name: 'Sample Psychologist B', credential: 'PsyD', specialty: 'Psychologist, Clinical', city: 'Denver', npi: '1000000002', phone: '3035550101',
+          open_to_offers: false, match_pct: 88, verdict: 'GO', reason: 'Clinical psychologist in Denver with identity, sanctions and license all clear.' },
+        { name: 'Sample Psychologist C', credential: 'PhD', specialty: 'Psychologist, Counseling', city: 'Aurora', npi: '1000000003', phone: '',
+          open_to_offers: false, match_pct: 71, verdict: 'NEEDS REVIEW', reason: 'Nearby counseling psychologist; the license needs a person to confirm it.' }
+      ] }
     };
+  }
+
+  function verdictClass(text) {
+    var first = (text || '').trim().split('\n')[0].trim().toUpperCase();
+    if (first === 'GO') return 'go';
+    if (first === 'NEEDS REVIEW') return 'review';
+    if (first === 'NO-GO') return 'nogo';
+    return 'error';
   }
 
   function esc(v) {
@@ -738,9 +725,23 @@
     });
   }
 
-  function initials(name) {
-    var parts = String(name || '').split(' ').filter(Boolean);
-    return ((parts[0] || '').charAt(0) + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : '')).toUpperCase();
+  function phoneText(digits) {
+    var d = String(digits || '').replace(/\D/g, '');
+    return d.length === 10 ? '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6) : d;
+  }
+
+  // Ways to reach a matched physician: Credentialai intros for those open to offers,
+  // otherwise the practice phone and the public registry record.
+  function contactLinks(m) {
+    var links = [];
+    if (m.open_to_offers) {
+      links.push('<a href="mailto:info@credentialai.co?subject=' + encodeURIComponent('Intro request: ' + m.name + ' (NPI ' + m.npi + ')') +
+        '">Request an intro</a>');
+    }
+    if (m.phone) links.push('<a href="tel:' + esc(String(m.phone).replace(/\D/g, '')) + '">Call ' + esc(phoneText(m.phone)) + '</a>');
+    if (m.npi) links.push('<a href="https://npiregistry.cms.hhs.gov/provider-view/' + encodeURIComponent(m.npi) + '" target="_blank" rel="noopener">NPI record ↗</a>');
+    if (m.report || PREVIEW) links.push('<a href="#" class="match-report" data-npi="' + esc(m.npi) + '">Verification report (PDF)</a>');
+    return links.length ? '<ul class="match-openings match-contact">' + links.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>' : '';
   }
 
   function downloadReport(report) {
@@ -869,62 +870,27 @@
     resultEl.innerHTML = html;
   }
 
-  // Specialty applies to physicians only.
-  var professionEl = document.getElementById('profession');
-  function toggleSpecialty() {
-    var physician = professionEl.value === 'physician';
-    document.getElementById('specialtyField').style.visibility = physician ? 'visible' : 'hidden';
-    if (!physician) document.getElementById('specialty').value = '';
-  }
-  professionEl.addEventListener('change', toggleSpecialty);
-  toggleSpecialty();
-
-  var PLURAL = { physician: 'physicians', psychologist: 'psychologists', counselor: 'counselors', 'social worker': 'social workers' };
-
-  function matchCard(m, i) {
-    var checks = (m.checks || []).map(function (c) {
-      return '<div class="mock-row"><div class="l"><b>' + esc(c.label) + '</b><small>' + esc(c.source) + '</small></div>' +
-        '<span class="chip ' + esc(c.tone) + '">' + esc(c.status) + '</span></div>';
-    }).join('');
-    var name = m.name + (m.credential ? ', ' + m.credential : '');
-    var meta = [m.specialty, m.city].filter(Boolean).join(' · ');
-    var status = m.open_to_offers
-      ? '<span class="chip ok">Open to offers</span>'
-      : '<span class="chip">Licensed nearby · not yet on Credentialai</span>';
-    return '<div class="mock lg result-card t-match">' +
-      '<div class="mock-head"><div class="mock-person"><span class="avatar">' + esc(initials(m.name)) + '</span>' +
-      '<div><b>' + (i + 1) + ' · ' + esc(name) + '</b><small>' + esc(meta) + '</small></div></div>' +
-      (m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '') + '</div>' +
-      '<div class="match-status">' + status + '</div>' +
-      (m.reason ? '<p class="mock-explain match-reason">' + esc(m.reason) + '</p>' : '') +
-      checks +
-      (m.report || PREVIEW ? '<button type="button" class="btn-ghost report-btn" data-i="' + i + '">Download verification report (PDF)</button>' : '') +
-      '</div>';
-  }
-
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    var city = document.getElementById('city').value.trim();
+    var first_name = document.getElementById('fn').value.trim();
+    var last_name = document.getElementById('ln').value.trim();
     var state = document.getElementById('state').value;
-    var profession = professionEl.value;
-    var specialty = document.getElementById('specialty').value;
-    var setting = document.getElementById('setting').value;
+    var profession = document.getElementById('profession').value;
 
     btn.disabled = true;
-    btn.textContent = 'Running verification…';
-    renderResult('<div class="verdict-box error"><span class="spinner"></span>Finding ' + esc(PLURAL[profession]) + ' near ' + esc(city) +
-      ', checking each one\'s identity, sanctions and license, then matching them to your opening. This can take up to a minute.</div>');
+    btn.textContent = 'Initializing workflow…';
+    renderResult('<div class="verdict-box error"><span class="spinner"></span>Checking identity, sanctions and license, and finding AI-matched physicians. This can take up to a minute.</div>');
 
     var headers = { 'Content-Type': 'application/json' };
     if (OWNER_KEY) headers['X-Demo-Key'] = OWNER_KEY;
     var request = PREVIEW
       ? new Promise(function (resolve) {
-          setTimeout(function () { resolve({ status: 200, data: sampleResult(city, state, profession) }); }, 800);
+          setTimeout(function () { resolve({ status: 200, data: sampleResult(first_name, last_name, state, profession) }); }, 800);
         })
-      : fetch('/api/match', {
+      : fetch('/api/verify', {
           method: 'POST',
           headers: headers,
-          body: JSON.stringify({ city: city, state: state, profession: profession, specialty: specialty, setting: setting })
+          body: JSON.stringify({ first_name: first_name, last_name: last_name, state: state, profession: profession })
         }).then(function (res) {
           return res.json().then(function (data) { return { status: res.status, data: data }; });
         });
@@ -934,35 +900,82 @@
         btn.textContent = 'Run verification';
         if (r.status === 429) {
           btn.disabled = true;
-          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 live searches for now. Please check back later.</div></div>');
+          renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 live verifications for now. Please check back later.</div></div>');
           return;
         }
         if (r.status !== 200) {
           btn.disabled = false;
-          renderResult('<div class="verdict-box error"><div class="verdict-title">Error</div><div class="verdict-explain">' + esc(r.data.error || 'Something went wrong.') + '</div></div>');
+          renderResult('<div class="verdict-box error"><div class="verdict-title">Error</div><div class="verdict-explain">' + (r.data.error || 'Something went wrong.') + '</div></div>');
           return;
         }
-        var matches = r.data.matches || [];
-        var what = (specialty ? specialty + ' ' : '') + PLURAL[profession];
-        if (!matches.length) {
-          renderResult('<p class="match-empty">No ' + esc(what) + ' found near ' + esc(city) + ', ' + esc(state) +
-            ' in the national provider registry. Check the city\'s spelling or try a nearby city.</p>');
-        } else {
-          var note = matches.length + ' matched ' + what + ' for your ' + (setting ? setting + ' ' : '') + 'opening near ' + city + ', ' + state + '.' +
-            (r.data.excluded ? ' ' + r.data.excluded + ' left out for a sanction or license problem.' : '');
-          renderResult('<div class="match-intro"><p class="result-heading">AI-matched clinicians</p><p class="match-note">' + esc(note) + '</p></div>' +
-            matches.map(matchCard).join(''));
-          Array.prototype.forEach.call(resultEl.querySelectorAll('.report-btn'), function (b) {
-            b.addEventListener('click', function () { downloadReport(matches[+b.getAttribute('data-i')].report); });
-          });
+        var cls = verdictClass(r.data.verdict_text);
+        var lines = (r.data.verdict_text || '').trim().split('\n');
+        var title = lines[0];
+        var explain = lines.slice(1).join(' ').trim();
+        var summary = r.data.summary;
+        var person = summary ? summary.person : {
+          name: first_name + ' ' + last_name,
+          initials: (first_name.charAt(0) + last_name.charAt(0)).toUpperCase(),
+          subtitle: profession.charAt(0).toUpperCase() + profession.slice(1) + ' · ' + state
+        };
+        function head(chip) {
+          return '<div class="mock-head"><div class="mock-person"><span class="avatar">' + esc(person.initials) + '</span>' +
+            '<div><b>' + esc(person.name) + '</b><small>' + esc(person.subtitle) + '</small></div></div>' + (chip || '') + '</div>';
         }
+
+        var checkRows = summary ? summary.checks.map(function (c) {
+          return '<div class="mock-row"><div class="l"><b>' + esc(c.label) + '</b><small>' + esc(c.source) + '</small></div>' +
+            '<span class="chip ' + esc(c.tone) + '">' + esc(c.status) + '</span></div>';
+        }).join('') : '';
+        var clear = summary ? summary.checks_clear + ' of 3 checks clear, each cited' : '';
+        var verifyCard = '<div class="mock lg result-card t-cred">' +
+          head('') +
+          checkRows +
+          '<div class="mock-verdict ' + cls + '"><b>' + esc(title) + '</b><small>' + esc(clear) + '</small></div>' +
+          (explain ? '<p class="mock-explain">' + esc(explain) + '</p>' : '') +
+          (r.data.report || PREVIEW ? '<button type="button" class="btn-ghost report-btn" id="reportBtn">Download verification report (PDF)</button>' : '') +
+          '</div>';
+
+        var matchHtml = '';
+        var similar = r.data.physician_matches;
+        var matches = similar ? similar.matches || [] : null;
+        if (matches && matches.length) {
+          matchHtml = '<div class="mock lg result-card t-match"><p class="result-heading">AI-matched physicians</p>' +
+            '<p class="match-note">Similar ' + esc(similar.specialty || profession) + ' near ' + esc(similar.city) + ', each checked for identity, sanctions and license.' +
+            (similar.excluded ? ' ' + similar.excluded + ' left out for a sanction or license problem.' : '') + '</p>' +
+            matches.map(function (m, i) {
+              var meta = [m.specialty, m.city].filter(Boolean).join(' · ');
+              var status = m.open_to_offers ? '<span class="chip ok">Open to offers</span>'
+                : m.verdict === 'GO' ? '<span class="chip ok">Verified</span>' : '<span class="chip warn">License needs review</span>';
+              return '<div class="mock-row top"><div class="l"><b>' + (i + 1) + ' · ' + esc(m.name + (m.credential ? ', ' + m.credential : '')) + '</b>' +
+                '<small>' + esc(meta) + '</small>' +
+                '<p class="match-status">' + status + '</p>' +
+                (m.reason ? '<p class="match-reason">' + esc(m.reason) + '</p>' : '') +
+                contactLinks(m) + '</div>' +
+                (m.match_pct != null ? '<span class="chip fit">' + esc(m.match_pct) + '% match</span>' : '') + '</div>';
+            }).join('') + '</div>';
+        } else if (matches) {
+          matchHtml = '<p class="match-empty">No similar physicians found near ' + esc(similar.city) + ' in the national provider registry.</p>';
+        } else {
+          matchHtml = '<p class="match-empty">AI matching needs a single registry record for this physician, so no matches are shown.</p>';
+        }
+        renderResult(verifyCard + matchHtml);
+        var reportBtn = document.getElementById('reportBtn');
+        if (reportBtn) reportBtn.addEventListener('click', function () { downloadReport(r.data.report); });
+        Array.prototype.forEach.call(resultEl.querySelectorAll('.match-report'), function (a) {
+          a.addEventListener('click', function (e) {
+            e.preventDefault();
+            var m = matches.filter(function (x) { return String(x.npi) === a.getAttribute('data-npi'); })[0];
+            downloadReport(m && m.report);
+          });
+        });
         // The server enforces the per-visitor limit; the button just mirrors it.
         btn.disabled = r.data.runs_left === 0;
       })
       .catch(function (err) {
         btn.disabled = false;
         btn.textContent = 'Run verification';
-        renderResult('<div class="verdict-box error"><div class="verdict-title">Network error</div><div class="verdict-explain">' + esc(err.message) + '</div></div>');
+        renderResult('<div class="verdict-box error"><div class="verdict-title">Network error</div><div class="verdict-explain">' + err.message + '</div></div>');
       });
   });
 })();

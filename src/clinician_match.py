@@ -1,6 +1,8 @@
-"""Matching verified clinicians to a facility's opening (the home page Facilities tab).
+"""AI-matched physicians for the home page Facilities tab.
 
-A facility gives its city, state, profession, setting and (optionally) a
+After a facility verifies a physician, match_similar finds physicians like them:
+same profession (and specialty, for physicians) near their practice city.
+match_clinicians does the work for any city, state, profession, setting and
 specialty. Candidates come from two places:
 
 - Credentialai physicians who turned on "Let employers find me" in their
@@ -103,6 +105,7 @@ def _from_record(record: dict, profession: str, state_code: str, wanted: str):
         "license": (in_state or {}).get("license") or "",
         "city": (practice.get("city") or "").title(),
         "zip": (practice.get("postal_code") or "")[:5],
+        "phone": practice.get("telephone_number") or "",
         "updated": basic.get("last_updated") or basic.get("enumeration_date") or "",
     }
 
@@ -313,12 +316,33 @@ def _ai_reasons(facility: dict, candidates: list) -> dict:
 
 # ---------- the match ----------
 
+def specialty_for(taxonomy_desc: str) -> str:
+    """The PHYSICIAN_SPECIALTIES key a registry taxonomy belongs to, or ""."""
+    desc = (taxonomy_desc or "").lower()
+    return next((key for key, text in PHYSICIAN_SPECIALTIES.items() if text.lower() in desc), "")
+
+
+def match_similar(identity: dict, state: str, profession: str, with_reports: bool = True):
+    """AI-matched physicians similar to a verified one: same profession (and specialty, for
+    physicians) near their practice city. None when the registry match isn't a single record."""
+    if (identity or {}).get("match_count") != 1:
+        return None
+    person = identity["matches"][0]
+    city = (person.get("practice_city") or "").title()
+    if not city:
+        return None
+    specialty = specialty_for(person.get("primary_taxonomy_desc")) if profession == "physician" else ""
+    result = match_clinicians(city, state, profession, specialty=specialty, with_reports=with_reports,
+                              exclude_npi=str(person.get("npi") or ""))
+    return {**result, "city": city, "specialty": specialty or person.get("primary_taxonomy_desc") or ""}
+
+
 def match_clinicians(city: str, state: str, profession: str, setting: str = "", specialty: str = "",
-                     with_reports: bool = True) -> dict:
+                     with_reports: bool = True, exclude_npi: str = "") -> dict:
     """Up to RESULTS verified clinicians for a facility's opening, best fit first."""
     registry = registry_candidates(city, state, profession, specialty)
-    opt_in = opt_in_candidates(state, profession)
-    opt_in_npis = {c["npi"] for c in opt_in}
+    opt_in = [c for c in opt_in_candidates(state, profession) if c["npi"] != exclude_npi]
+    opt_in_npis = {c["npi"] for c in opt_in} | {exclude_npi}
     registry = [c for c in registry if c["npi"] not in opt_in_npis]
 
     # Check the closest, most recently updated registry records first.
@@ -369,6 +393,7 @@ def match_clinicians(city: str, state: str, profession: str, setting: str = "", 
             "verdict": c["verdict"],
             "checks": (c.get("summary") or {}).get("checks", []),
             "report": report,
+            "phone": c.get("phone") or "",
         })
     print(f"[clinicians] {profession} in {city}, {state}: {len(registry)} registry, {len(opt_in)} opt-in, "
           f"{excluded} left out for a sanction or license problem, {len(matches)} shown")
