@@ -399,7 +399,6 @@
         </div>
         <div id="paneFacilities" role="tabpanel" aria-labelledby="tabFacilities">
         <p class="tab-hint">For hospitals, staffing agencies and health plans. Find verified clinicians for your opening.</p>
-        <p class="panel-label">AI-matched, pre-verified clinicians</p>
         <form id="matchForm">
           <div class="row2">
             <div class="field"><label for="city">Facility city</label><input id="city" required autocomplete="address-level2" placeholder="e.g. Houston" /></div>
@@ -471,7 +470,7 @@
               <option value="telehealth">Telehealth</option>
             </select>
           </div>
-          <button class="run" type="submit" id="runBtn">Find matched clinicians</button>
+          <button class="run" type="submit" id="runBtn">Run verification</button>
         </form>
         <div id="result"></div>
         </div>
@@ -912,7 +911,7 @@
     var setting = document.getElementById('setting').value;
 
     btn.disabled = true;
-    btn.textContent = 'Finding clinicians…';
+    btn.textContent = 'Running verification…';
     renderResult('<div class="verdict-box error"><span class="spinner"></span>Finding ' + esc(PLURAL[profession]) + ' near ' + esc(city) +
       ', checking each one\'s identity, sanctions and license, then matching them to your opening. This can take up to a minute.</div>');
 
@@ -932,7 +931,7 @@
 
     request
       .then(function (r) {
-        btn.textContent = 'Find matched clinicians';
+        btn.textContent = 'Run verification';
         if (r.status === 429) {
           btn.disabled = true;
           renderResult('<div class="verdict-box error"><div class="verdict-title">Demo limit reached</div><div class="verdict-explain">You\'ve used all 3 live searches for now. Please check back later.</div></div>');
@@ -962,7 +961,7 @@
       })
       .catch(function (err) {
         btn.disabled = false;
-        btn.textContent = 'Find matched clinicians';
+        btn.textContent = 'Run verification';
         renderResult('<div class="verdict-box error"><div class="verdict-title">Network error</div><div class="verdict-explain">' + esc(err.message) + '</div></div>');
       });
   });
