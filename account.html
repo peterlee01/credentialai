@@ -382,6 +382,11 @@
     return api('POST', { action: 'verify' }).then(function (r) {
       if (r.status !== 200) { $('jobsResult').innerHTML = ''; msg('verifyError', r.data.error); refresh(); return; }
       showResult(Object.assign({ created_at: new Date().toISOString() }, r.data));
+      if (/[?&]debug\b/.test(location.search) && r.data.notes) {
+        $('jobsResult').insertAdjacentHTML('beforeend', '<div class="note" style="margin-top:1rem"><b>Job search details</b><ul>' +
+          (r.data.notes.length ? r.data.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') : '<li>No details recorded.</li>') +
+          '</ul></div>');
+      }
       setRunsLeft(r.data.runs_left);
     }).catch(function () { $('jobsResult').innerHTML = ''; msg('verifyError', 'Network error. Please try again.'); $('updateBtn').disabled = false; });
   }
