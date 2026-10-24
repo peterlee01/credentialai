@@ -211,10 +211,6 @@
   .cap-card h3 { font-family: var(--display); font-size: 1.02rem; font-weight: 700; color: var(--heading); margin: 0 0 0.5rem; }
   .cap-card p { font-size: 1rem; color: var(--text); margin: 0; line-height: 1.6; }
 
-  .cta-card { position: relative; text-align: center; padding: 4.5rem 2rem; border-radius: var(--radius-xl); background: var(--panel); border: 1px solid #00d4aa33; overflow: hidden; }
-  .cta-card::before { content: ""; position: absolute; top: 50%; left: 50%; width: 700px; height: 350px; transform: translate(-50%,-50%); background: #4a9eff1a; filter: blur(90px); border-radius: 50%; pointer-events: none; }
-  .cta-card h2 { max-width: 26ch; margin: 0 auto 0.9rem; position: relative; }
-  .cta-card p { color: var(--text); max-width: 46ch; margin: 0 auto 2rem; position: relative; }
   .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; }
   .btn-primary, .btn-ghost { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.8rem 1.5rem; border-radius: 999px; font-weight: 700; font-size: 0.92rem; text-decoration: none; }
   .btn-primary { background: var(--gradient-accent); color: #04120d; box-shadow: var(--glow-btn); }
@@ -293,6 +289,10 @@
   .mock-arrow svg { width: 18px; height: 18px; }
 
   /* ---------- How it works: phased pipeline ---------- */
+  .how-group + .how-group { margin-top: 3.5rem; }
+  .how-sub { display: flex; align-items: center; gap: 0.75rem; margin: 0 0 1.4rem; font-family: var(--display); font-size: 1.35rem; color: var(--heading); --c: var(--accent); }
+  .how-sub.t-match { --c: var(--match); }
+  .how-sub span { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--c); color: var(--c); font-size: 0.95rem; }
   .phases { display: grid; grid-template-columns: 3fr 1fr; gap: 1.75rem; margin-bottom: 0.9rem; }
   .phase { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c); display: flex; align-items: center; gap: 0.75rem; }
   .phase::after { content: ""; flex: 1; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--c), transparent); }
@@ -554,9 +554,11 @@
   <div class="wrap">
     <div class="center">
       <p class="band-label">How it works</p>
-      <h2>From a name to AI-matched physicians <span class="soft">in four steps.</span></h2>
-      <p class="section-dek">Identity is confirmed first. Sanctions and license checks then run at the same time. Similar physicians nearby are verified and ranked by fit.</p>
+      <h2>Two paths. <span class="soft">Four steps each.</span></h2>
+      <p class="section-dek">Facilities verify a physician and get AI-matched candidates. Physicians get verified once and see AI-matched jobs.</p>
     </div>
+    <div class="how-group">
+    <h3 class="how-sub"><span>1</span> For facilities</h3>
     <div class="phases" aria-hidden="true">
       <div class="phase t-cred">Credentialing</div>
       <div class="phase t-match">AI matching</div>
@@ -591,6 +593,45 @@
         <p>A ranked list of similar, verified physicians nearby, with ways to contact them.</p>
       </div>
     </div>
+    </div>
+
+    <div class="how-group">
+    <h3 class="how-sub t-match"><span>2</span> For physicians</h3>
+    <div class="phases" aria-hidden="true" style="grid-template-columns: 1fr 1fr">
+      <div class="phase t-cred">Credentialing</div>
+      <div class="phase t-match">AI matching</div>
+    </div>
+    <div class="steps">
+      <div class="step-card t-cred">
+        <div class="step-tag">Credentialing</div>
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+        <div class="step-num">01</div>
+        <h3>Sign in and claim your NPI</h3>
+        <p>An emailed sign-in link, then confirm your record in the national provider registry.</p>
+      </div>
+      <div class="step-card t-cred">
+        <div class="step-tag">Credentialing</div>
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        <div class="step-num">02</div>
+        <h3>Get verified</h3>
+        <p>Identity, sanctions and license checked automatically, with a verified profile to download.</p>
+      </div>
+      <div class="step-card t-match">
+        <div class="step-tag">AI matching</div>
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
+        <div class="step-num">03</div>
+        <h3>Set your preferences</h3>
+        <p>Where you'll work, setting, pay, job type and contract.</p>
+      </div>
+      <div class="step-card t-match">
+        <div class="step-tag">AI matching</div>
+        <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg></div>
+        <div class="step-num">04</div>
+        <h3>See AI-matched jobs</h3>
+        <p>Facilities hiring for you, ranked by fit, with pay and direct job links. Let them find you if you choose.</p>
+      </div>
+    </div>
+    </div>
   </div>
 </section>
 
@@ -619,19 +660,6 @@
           <li>Every decision shows the records behind it</li>
         </ul>
         <a class="btn-ghost" href="/physicians">Find Facilities</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="band alt">
-  <div class="wrap">
-    <div class="cta-card">
-      <h2>See credentialing and matching in one run.</h2>
-      <p>Enter a name and watch both happen live.</p>
-      <div class="cta-buttons">
-        <a class="btn-primary" href="#verify">Run a verification</a>
-        <a class="btn-ghost" href="#how">See how it works</a>
       </div>
     </div>
   </div>
