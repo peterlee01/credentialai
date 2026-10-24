@@ -285,7 +285,9 @@
   .mock-verdict { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.75rem; padding: 0.75rem 0.9rem; border-radius: 0.6rem; background: var(--accent-dim); border: 1px solid var(--accent); }
   .mock-verdict b { font-family: var(--display); color: var(--accent); font-size: 1.05rem; }
   .mock-verdict small { color: var(--text); font-size: 0.76rem; }
-  .value-card .mock .mock-subhead { margin: 1rem 0 0.5rem; max-width: none; font-family: var(--mono); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted-2); }
+  .shot { margin: auto 0 0; }
+  .shot img { display: block; width: 100%; height: auto; border-radius: var(--radius-lg); border: 1px solid var(--border-strong); box-shadow: 0 20px 40px -18px #000000cc, 0 0 24px color-mix(in srgb, var(--c) 12%, transparent); }
+  .shot figcaption { margin: 0.8rem 0 0; font-family: var(--mono); font-size: 0.64rem; color: var(--muted-2); text-align: center; }
   .mock-note { margin: 0.8rem 0 0; font-family: var(--mono); font-size: 0.64rem; color: var(--muted-2); text-align: center; }
   .mock-arrow { display: flex; justify-content: center; color: var(--match); margin: 0.15rem 0 0.6rem; }
   .mock-arrow svg { width: 18px; height: 18px; }
@@ -520,20 +522,11 @@
           <li>A plain-language GO, NEEDS REVIEW or NO-GO verdict, with a PDF report</li>
           <li>AI-matched physicians ranked by fit, open-to-offers first</li>
         </ul>
-        <div class="mock" aria-hidden="true">
-          <div class="mock-head">
-            <div class="mock-person"><span class="avatar">SL</span><div><b>Dr. S. Lee</b><small>Internal Medicine · Colorado</small></div></div>
-            <span class="chip">Sample</span>
-          </div>
-          <div class="mock-row"><div class="l"><b>Identity</b><small>NPPES NPI Registry</small></div><span class="chip ok">Match found</span></div>
-          <div class="mock-row"><div class="l"><b>Sanctions</b><small>HHS-OIG LEIE</small></div><span class="chip ok">No hits</span></div>
-          <div class="mock-row"><div class="l"><b>License</b><small>State board</small></div><span class="chip ok">Active</span></div>
-          <div class="mock-verdict"><b>GO</b><small>3 of 3 checks clear, each cited</small></div>
-          <div class="mock-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
-          <div class="mock-row"><div class="l"><b>1 · Dr. A. Rivera</b><small>Open to offers · Verified</small></div><span class="chip fit">94% match</span></div>
-          <div class="mock-row"><div class="l"><b>2 · Dr. M. Chen</b><small>Same city · Verified</small></div><span class="chip fit">88% match</span></div>
-          <p class="mock-note">Sample screen · illustrative data</p>
-        </div>
+        <figure class="shot">
+          <img src="images/facilities-result.jpg" width="980" height="3126" loading="lazy"
+               alt="Credentialai facility result: a physician's identity, sanctions and license checks with a GO verdict, followed by AI-matched physicians with match scores and contact links" />
+          <figcaption>Product screenshot · sample data</figcaption>
+        </figure>
       </article>
 
       <article class="value-card t-match" id="matching">
@@ -547,22 +540,11 @@
           <li>Identity, sanctions and license verified, downloadable as a PDF</li>
           <li>Let facilities find you, marked open to offers</li>
         </ul>
-        <div class="mock" aria-hidden="true">
-          <div class="mock-head">
-            <div class="mock-person"><span class="avatar">AR</span><div><b>Dr. A. Rivera</b><small>Internal Medicine · Denver, Colorado</small></div></div>
-            <span class="chip ok">✓ Verified</span>
-          </div>
-          <div class="mock-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
-          <div class="mock-row"><div class="l"><b>1 · Northside Medical Center</b><small>Hiring · Internal Medicine Physician</small></div><span class="chip fit">92% match</span></div>
-          <div class="mock-row"><div class="l"><b>2 · Lakeview Health</b><small>Hiring · Outpatient Internist · $260K–$300K</small></div><span class="chip fit">86% match</span></div>
-          <div class="mock-row"><div class="l"><b>3 · Summit Regional</b><small>Hiring · Hospitalist, nights</small></div><span class="chip fit">79% match</span></div>
-          <p class="mock-subhead">Your verified profile</p>
-          <div class="mock-row"><div class="l"><b>Identity</b><small>NPPES NPI Registry</small></div><span class="chip ok">Match found</span></div>
-          <div class="mock-row"><div class="l"><b>Sanctions</b><small>HHS-OIG LEIE</small></div><span class="chip ok">No hits</span></div>
-          <div class="mock-row"><div class="l"><b>License</b><small>State board</small></div><span class="chip ok">Active</span></div>
-          <div class="mock-verdict"><b>GO</b><small>3 of 3 checks clear, each cited</small></div>
-          <p class="mock-note">Sample screen · illustrative data</p>
-        </div>
+        <figure class="shot">
+          <img src="images/physicians-result.jpg" width="980" height="3126" loading="lazy"
+               alt="Credentialai physician account: verified badge, AI-matched jobs with match scores, pay and job links, and the physician's verified profile with a GO verdict" />
+          <figcaption>Product screenshot · sample data</figcaption>
+        </figure>
       </article>
     </div>
   </div>
