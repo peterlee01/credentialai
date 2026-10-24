@@ -55,18 +55,55 @@
 
 <main class="wrap">
   <h1>Terms of Service</h1>
-  <p class="updated">Last updated: January 2026</p>
+  <p class="updated">Last updated: October 2026</p>
 
-  <p>These terms govern your use of the Credentialai website, including the live verification demo. By using this site, you agree to the terms below.</p>
+  <p>These terms govern your use of the Credentialai website and services, including the free verification demo, physician accounts and facility accounts. By using this site, you agree to the terms below.</p>
 
   <h2>Description of service</h2>
-  <p>This site provides a live demonstration of a multi-agent credential verification workflow. Identity checks run against the NPPES NPI Registry and sanctions checks run against the HHS-OIG List of Excluded Individuals/Entities, and license checks for Colorado, Washington and Connecticut run against those states' public license records — all real, public, live U.S. government data sources.</p>
+  <p>Credentialai checks a physician's or clinician's credentials against public primary sources and uses AI to match verified physicians with facilities. Each verification includes:</p>
+  <ul>
+    <li><strong>Identity</strong>, checked against the NPPES NPI Registry.</li>
+    <li><strong>Sanctions</strong>, checked against the HHS-OIG List of Excluded Individuals/Entities (LEIE).</li>
+    <li><strong>License status</strong>, checked against state records:
+      <ul>
+        <li>Colorado, Washington and Connecticut, for all supported professions, using those states' public license records (Colorado Department of Regulatory Agencies, Washington State Department of Health, Connecticut eLicensing).</li>
+        <li>Physicians in Alabama, Alaska, California, Delaware, Florida, Illinois, Maine, Maryland, Massachusetts, Michigan, Missouri, New Hampshire, New Jersey, New York, Ohio, Rhode Island, Tennessee, Texas, Vermont and West Virginia, using License Verify, a third-party service that reads state medical board rosters by license number.</li>
+        <li>For any other state or profession, or when a record can't be read, the license is marked for a person to confirm with the state board. A license status is never assumed.</li>
+      </ul>
+    </li>
+  </ul>
+  <p>From those results, Credentialai gives a plain-language GO, NEEDS REVIEW or NO-GO verdict, written with the help of Anthropic's Claude AI, and a downloadable PDF report.</p>
+  <p>AI matching suggests similar physicians for facilities, drawn from the NPPES NPI Registry and from physicians who chose to be found, and suggests facilities with open roles for physicians, drawn from public job listings (Google Jobs, via SerpApi). Match scores and reasons are generated automatically from the information available.</p>
 
   <h2>Not a substitute for credentialing decisions</h2>
-  <p>Output from this demo is provided for illustrative and evaluation purposes only. It must not be used as the sole basis for actual hiring, credentialing, privileging, or compliance decisions. Organizations making real credentialing decisions should rely on verified primary-source data and their own compliance processes.</p>
+  <p>Credentialai's results support, and do not replace, your own credentialing process. They must not be used as the sole basis for hiring, credentialing, privileging, payer enrollment or compliance decisions. Data sources can be incomplete or out of date, third-party services can be unavailable, and AI-generated text and match scores can contain errors. Confirm important findings with the primary source before acting on them.</p>
+  <p>Credentialai is not a credentials verification organization (CVO), is not NCQA-certified, and is not a consumer reporting agency. Do not use Credentialai results as a consumer report or for any purpose covered by the Fair Credit Reporting Act.</p>
+
+  <h2>Accounts</h2>
+  <p><strong>Physician accounts.</strong> You may claim only your own NPI record. Claiming someone else's record is not allowed and will result in the account being removed. If you turn on "Let employers find me," facilities searching for your profession in your state can see your name, specialty, city and verified status, marked as open to offers. You can turn it off at any time.</p>
+  <p><strong>Facility accounts.</strong> Facility accounts are in early access. We review each facility and may approve, limit or decline access at our discretion. You must provide accurate facility information and use the service only on behalf of that facility.</p>
+  <p>You sign in with a link sent to your email address. Keep access to that email secure; you are responsible for activity on your account. You can delete your account at any time from your account page.</p>
+
+  <h2>Contacting physicians</h2>
+  <p>Contact details shown with AI-matched physicians, such as a practice phone number, come from the public NPPES NPI Registry. Use them only for legitimate recruiting or credentialing purposes, and follow all laws that apply to you, including telemarketing and anti-spam rules. When you request an introduction, Credentialai shares your request with the physician and may decline requests that appear to be misuse.</p>
 
   <h2>Usage limits</h2>
-  <p>To manage service capacity, the live demo is limited to three real verifications per visitor. Requests beyond that limit will be declined.</p>
+  <p>To manage capacity and cost:</p>
+  <ul>
+    <li>The free demo is limited to three verifications per visitor.</li>
+    <li>Physician accounts can update their verification and job matches three times a day.</li>
+    <li>Facility accounts have the limit shown on their account page.</li>
+  </ul>
+  <p>Requests beyond a limit will be declined.</p>
+
+  <h2>Acceptable use</h2>
+  <p>Don't misuse the service. This includes running checks on people without a legitimate purpose, scraping or bulk-collecting results, trying to get around usage limits, interfering with the site's operation, and using results to harass or discriminate against anyone.</p>
+
+  <h2>Plans and early access</h2>
+  <p>Plans described on our early access page are being rolled out with early customers. Features, limits and availability may change, and any pricing is agreed with you separately.</p>
+
+  <h2>Third-party services and links</h2>
+  <p>Credentialai relies on third-party data sources and services that we don't control, as described above. Job listings link to third-party websites; we are not responsible for their content, availability or hiring decisions.</p>
 
   <h2>No warranty</h2>
   <p>This service is provided "as is" and "as available," without warranties of any kind, express or implied, including accuracy, completeness, or fitness for a particular purpose.</p>
