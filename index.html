@@ -310,7 +310,8 @@
   .aud-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 2rem; display: flex; flex-direction: column; gap: 1.2rem; }
   .aud-card .icon-box { margin-bottom: 0; color: var(--c); }
   .aud-card h3 { font-family: var(--display); font-size: 1.35rem; color: var(--heading); margin: 0; }
-  .aud-card .btn-primary, .aud-card .btn-ghost { align-self: flex-start; margin-top: auto; }
+  .aud-card .btn-primary, .aud-card .btn-ghost { align-self: flex-start; }
+  .aud-free { margin: auto 0 0.7rem; padding-top: 0.5rem; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c, var(--accent)); }
   .aud-note { font-family: var(--mono); font-size: 0.68rem; color: var(--muted-2); margin: 0; }
 
   .source-grid.four { grid-template-columns: repeat(4, 1fr); }
@@ -649,6 +650,7 @@
           <li>See which verified physicians fit your facility</li>
           <li>Keep a timestamped record of every check</li>
         </ul>
+        <p class="aud-free">Get Started for Free</p>
         <a class="btn-primary" href="#verify">Run a verification</a>
       </div>
       <div class="aud-card t-match">
@@ -659,6 +661,7 @@
           <li>See facilities that fit your location and specialty</li>
           <li>Every decision shows the records behind it</li>
         </ul>
+        <p class="aud-free">Get Started for Free</p>
         <a class="btn-ghost" href="/physicians">Find Facilities</a>
       </div>
     </div>
