@@ -360,6 +360,12 @@
   .next-steps ol { margin: 0; padding-left: 1.2rem; font-size: 0.95rem; line-height: 1.55; }
   .next-steps li + li { margin-top: 0.45rem; }
   .next-steps a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+  .verdict-panel.review, .verdict-panel.nogo { margin-top: 0.75rem; padding: 1rem 1.15rem; border-radius: 0.6rem; border: 1px solid var(--warn); background: var(--warn-dim); }
+  .verdict-panel.nogo { border-color: var(--danger); background: var(--danger-dim); }
+  .mock .verdict-panel.review .mock-verdict, .mock .verdict-panel.nogo .mock-verdict { margin: 0; padding: 0; border: 0; background: none; }
+  .verdict-panel .mock-explain { margin: 0.75rem 0 0; }
+  .mock .verdict-panel .next-steps { margin: 1rem 0 0; padding: 1rem 0 0; border: 0; border-top: 1px solid #edb20055; border-radius: 0; background: none; }
+  .mock .verdict-panel .next-steps.nogo { border-top-color: #fb2c3655; }
   .chip.bad { color: var(--danger); background: var(--danger-dim); border-color: #ff5c5c40; }
   .match-hiring { margin: 0.6rem 0 0.25rem; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
   .match-openings { list-style: disc; margin: 0; padding-left: 1.2rem; font-size: 1rem; font-weight: 400; line-height: 1.5; }
@@ -1015,9 +1021,9 @@
         var verifyCard = '<div class="mock lg result-card t-cred">' +
           head('') +
           checkRows +
-          '<div class="mock-verdict ' + cls + '"><b>' + esc(title) + '</b><small>' + esc(clear) + '</small></div>' +
+          '<div class="verdict-panel ' + cls + '"><div class="mock-verdict ' + cls + '"><b>' + esc(title) + '</b><small>' + esc(clear) + '</small></div>' +
           (explain ? '<p class="mock-explain">' + esc(explain) + '</p>' : '') +
-          nextStepsHtml(summary, r.data.verdict_text, 'facility') +
+          nextStepsHtml(summary, r.data.verdict_text, 'facility') + '</div>' +
           (r.data.report || PREVIEW ? '<button type="button" class="btn-ghost report-btn" id="reportBtn">Download verification report (PDF)</button>' : '') +
           '</div>';
 
