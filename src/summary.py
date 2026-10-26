@@ -26,6 +26,79 @@ def _result(tool_calls: list, name: str):
     return None if call is None else (call.get("result") or {})
 
 
+NPPES_SEARCH = "https://npiregistry.cms.hhs.gov/"
+NPPES_UPDATE = "https://nppes.cms.hhs.gov/"
+OIG_SEARCH = "https://exclusions.oig.hhs.gov/"
+OIG_REINSTATEMENT = "https://oig.hhs.gov/exclusions/"
+STATE_BOARDS = "https://www.fsmb.org/contact-a-state-medical-board/"
+
+
+def _step(text: str, label: str = "", url: str = "") -> dict:
+    return {"text": text, "link": {"label": label, "url": url} if url else None}
+
+
+def next_steps(state: str, profession: str, identity, sanctions, license_) -> dict:
+    """What a facility and a physician should do about a NEEDS REVIEW or NO-GO result,
+    one step per check that didn't clear. Empty lists when every check cleared."""
+    facility, physician = [], []
+    count = (identity or {}).get("match_count", 0)
+    if identity is not None and count > 1:
+        facility.append(_step("Several registry records share this name. Ask the physician for their NPI number "
+                              "to confirm which record is theirs.", "Search the NPI Registry", NPPES_SEARCH))
+        physician.append(_step("Several registry records share your name. Check that your name and practice "
+                               "state match your NPI record exactly.", "Update your NPI record", NPPES_UPDATE))
+    elif identity is not None and count == 0:
+        facility.append(_step("No registry record matched. Check the spelling, state and profession, or ask the "
+                              "physician for their NPI number.", "Search the NPI Registry", NPPES_SEARCH))
+        physician.append(_step("We couldn't find your registry record. Make sure your name, practice state and "
+                               "profession match your NPI record, and update it if it's out of date.",
+                               "Update your NPI record", NPPES_UPDATE))
+
+    if sanctions is not None and sanctions.get("hit_count", 0) > 0:
+        facility.append(_step("A matching name is on the federal exclusion list. Confirm it's the same person, using "
+                              "their date of birth or NPI, before you decide. Federal health programs won't pay for "
+                              "services from an excluded provider.", "Search the OIG exclusion list", OIG_SEARCH))
+        physician.append(_step("A matching name is on the HHS-OIG exclusion list. If it isn't you, or your exclusion "
+                               "has ended, contact HHS-OIG to correct the record or apply for reinstatement.",
+                               "HHS-OIG exclusions", OIG_REINSTATEMENT))
+
+    status = (license_ or {}).get("status")
+    record = ((license_ or {}).get("records") or [{}])[0] or {}
+    board = record.get("board_url") or (STATE_BOARDS if profession == "physician" else "")
+    board_label = f"{state} licensing board" if record.get("board_url") else "Find the state medical board"
+    if status in ("expired", "revoked"):
+        facility.append(_step(f"The license is {status}. The physician shouldn't practice until it's active again. "
+                              "Check the board's record for the reason and any renewal.", board_label, board))
+        physician.append(_step(f"Your {state} license shows as {status}. Resolve it with the state board, then run "
+                               "the check again.", board_label, board))
+    elif status == "unverified":
+        facility.append(_step(f"{state} licenses can't be checked automatically yet. Look the license up on the state "
+                              "board's website, or ask the physician for a copy.", board_label, board))
+        physician.append(_step(f"We can't check {state} licenses automatically yet, so a facility will confirm your "
+                               "license with the state board. Keep your license number handy.", board_label, board))
+    elif status == "pending":
+        facility.append(_step("The license is pending. Confirm it's active with the state board before the "
+                              "physician starts.", board_label, board))
+        physician.append(_step("Your license shows as pending. Run the check again once the board marks it active.",
+                               board_label, board))
+    elif status == "ambiguous":
+        facility.append(_step("Several license records share this name. Ask the physician for their license number "
+                              "and confirm it with the state board.", board_label, board))
+        physician.append(_step("Several license records share your name. Make sure the name on your license matches "
+                               "your NPI record.", board_label, board))
+    elif license_ is not None and status != "active":
+        facility.append(_step("No license record matched this name. Ask the physician for their license number and "
+                              "confirm it with the state board.", board_label, board))
+        physician.append(_step("No license record matched your name. Make sure the name on your license matches your "
+                               "NPI record, and that the right state is selected.", board_label, board))
+
+    if facility:
+        facility.append(_step("Download the PDF report and keep it in the physician's credentialing file. "
+                              "Your credentialing team makes the final decision."))
+        physician.append(_step("Once it's resolved, run the check again to update your verified profile."))
+    return {"facility": facility, "physician": physician}
+
+
 def build_summary(first_name: str, last_name: str, state: str, profession: str, tool_calls: list) -> dict:
     identity = _result(tool_calls, "get_npi_identity")
     sanctions = _result(tool_calls, "check_sanctions")
@@ -114,4 +187,5 @@ def build_summary(first_name: str, last_name: str, state: str, profession: str, 
         },
         "checks": rows,
         "checks_clear": sum(1 for r in rows if r["tone"] == "ok"),
+        "next_steps": next_steps(state, profession, identity, sanctions, license_),
     }
