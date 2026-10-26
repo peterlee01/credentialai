@@ -102,6 +102,13 @@
   .mock-verdict.review { background: var(--warn-dim); border-color: var(--warn); } .mock-verdict.review b { color: var(--warn); }
   .mock-verdict.nogo { background: var(--danger-dim); border-color: var(--danger); } .mock-verdict.nogo b { color: var(--danger); }
   .mock-explain { margin: 1rem 0 0; }
+  .next-steps { margin: 1rem 0 0; padding: 1rem 1.1rem; border-radius: 0.75rem; border: 1px solid var(--warn); background: var(--warn-dim); }
+  .next-steps.nogo { border-color: var(--danger); background: var(--danger-dim); }
+  .next-steps b { display: block; font-size: 0.95rem; color: var(--warn); margin-bottom: 0.4rem; }
+  .next-steps.nogo b { color: var(--danger); }
+  .next-steps ol { margin: 0; padding-left: 1.2rem; font-size: 0.95rem; line-height: 1.55; }
+  .next-steps li + li { margin-top: 0.45rem; }
+  .next-steps a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
   .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
   .match-hiring { margin: 0.6rem 0 0.25rem; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
   .match-openings { list-style: disc; margin: 0; padding-left: 1.2rem; }
@@ -292,6 +299,16 @@
     if (m.report) links.push('<button type="button" class="link-btn match-report" data-npi="' + esc(m.npi) + '">Verification report (PDF)</button>');
     return '<ul class="match-openings match-contact">' + links.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>';
   }
+  // "What to do next" for a NEEDS REVIEW or NO-GO result, from the summary's next_steps.
+  function nextStepsHtml(summary, verdictText, audience) {
+    var steps = summary && summary.next_steps ? summary.next_steps[audience] || [] : [];
+    var cls = verdictClass(verdictText);
+    if (!steps.length || cls === 'go') return '';
+    return '<div class="next-steps ' + esc(cls) + '"><b>What to do next</b><ol>' + steps.map(function (st) {
+      return '<li>' + esc(st.text) + (st.link ? ' <a href="' + esc(st.link.url) + '" target="_blank" rel="noopener">' +
+        esc(st.link.label) + ' ↗</a>' : '') + '</li>';
+    }).join('') + '</ol></div>';
+  }
   function resultHtml(data, runId) {
     var lines = (data.verdict_text || '').trim().split('\n');
     var s = data.summary || {};
@@ -305,6 +322,7 @@
       '<div class="mock-verdict ' + verdictClass(data.verdict_text) + '"><b>' + esc(lines[0]) + '</b><small>' +
       (s.checks ? esc(s.checks_clear + ' of 3 checks clear, each cited') : '') + '</small></div>' +
       (lines.length > 1 ? '<p class="mock-explain">' + esc(lines.slice(1).join(' ').trim()) + '</p>' : '') +
+      nextStepsHtml(s, data.verdict_text, 'facility') +
       '<div class="actions" style="margin-top:1rem"><button class="btn-ghost run-report" type="button" data-run="' + esc(runId || '') + '">Download verification report (PDF)</button></div></div>';
     var similar = data.physician_matches, matches = similar ? similar.matches || [] : null, list = '';
     if (matches && matches.length) {

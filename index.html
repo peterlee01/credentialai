@@ -353,6 +353,13 @@
   .mock-verdict.nogo { background: var(--danger-dim); border-color: var(--danger); }
   .mock-verdict.nogo b { color: var(--danger); }
   .mock-explain { margin: 1rem 0 0; font-size: 1rem; line-height: 1.55; color: var(--text); }
+  .next-steps { margin: 1rem 0 0; padding: 1rem 1.1rem; border-radius: 0.75rem; border: 1px solid var(--warn); background: var(--warn-dim); }
+  .next-steps.nogo { border-color: var(--danger); background: var(--danger-dim); }
+  .next-steps b { display: block; font-size: 0.95rem; color: var(--warn); margin-bottom: 0.4rem; }
+  .next-steps.nogo b { color: var(--danger); }
+  .next-steps ol { margin: 0; padding-left: 1.2rem; font-size: 0.95rem; line-height: 1.55; }
+  .next-steps li + li { margin-top: 0.45rem; }
+  .next-steps a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
   .chip.bad { color: var(--danger); background: var(--danger-dim); border-color: #ff5c5c40; }
   .match-hiring { margin: 0.6rem 0 0.25rem; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
   .match-openings { list-style: disc; margin: 0; padding-left: 1.2rem; font-size: 1rem; font-weight: 400; line-height: 1.5; }
@@ -933,6 +940,16 @@
     });
   });
 
+  // "What to do next" for a NEEDS REVIEW or NO-GO result, from the summary's next_steps.
+  function nextStepsHtml(summary, verdictText, audience) {
+    var steps = summary && summary.next_steps ? summary.next_steps[audience] || [] : [];
+    var cls = verdictClass(verdictText);
+    if (!steps.length || cls === 'go') return '';
+    return '<div class="next-steps ' + esc(cls) + '"><b>What to do next</b><ol>' + steps.map(function (st) {
+      return '<li>' + esc(st.text) + (st.link ? ' <a href="' + esc(st.link.url) + '" target="_blank" rel="noopener">' +
+        esc(st.link.label) + ' ↗</a>' : '') + '</li>';
+    }).join('') + '</ol></div>';
+  }
   function renderResult(html) {
     resultEl.innerHTML = html;
   }
@@ -1000,6 +1017,7 @@
           checkRows +
           '<div class="mock-verdict ' + cls + '"><b>' + esc(title) + '</b><small>' + esc(clear) + '</small></div>' +
           (explain ? '<p class="mock-explain">' + esc(explain) + '</p>' : '') +
+          nextStepsHtml(summary, r.data.verdict_text, 'facility') +
           (r.data.report || PREVIEW ? '<button type="button" class="btn-ghost report-btn" id="reportBtn">Download verification report (PDF)</button>' : '') +
           '</div>';
 
