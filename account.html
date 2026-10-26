@@ -109,6 +109,12 @@
   .next-steps ol { margin: 0; padding-left: 1.2rem; font-size: 0.95rem; line-height: 1.55; }
   .next-steps li + li { margin-top: 0.45rem; }
   .next-steps a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+  .verdict-panel.review, .verdict-panel.nogo { margin-top: 0.75rem; padding: 1rem 1.15rem; border-radius: 0.6rem; border: 1px solid var(--warn); background: var(--warn-dim); }
+  .verdict-panel.nogo { border-color: var(--danger); background: var(--danger-dim); }
+  .mock .verdict-panel.review .mock-verdict, .mock .verdict-panel.nogo .mock-verdict { margin: 0; padding: 0; border: 0; background: none; }
+  .verdict-panel .mock-explain { margin: 0.75rem 0 0; }
+  .mock .verdict-panel .next-steps { margin: 1rem 0 0; padding: 1rem 0 0; border: 0; border-top: 1px solid #edb20055; border-radius: 0; background: none; }
+  .mock .verdict-panel .next-steps.nogo { border-top-color: #fb2c3655; }
   .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
   .match-hiring { margin: 0.6rem 0 0.25rem; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
   .match-openings { list-style: disc; margin: 0; padding-left: 1.2rem; }
@@ -307,10 +313,10 @@
         return '<div class="mock-row"><div class="l"><b>' + esc(c.label) + '</b><small>' + esc(c.source) + '</small></div>' +
           '<span class="chip ' + esc(c.tone) + '">' + esc(c.status) + '</span></div>';
       }).join('') +
-      '<div class="mock-verdict ' + verdictClass(data.verdict_text) + '"><b>' + esc(lines[0]) + '</b><small>' +
+      '<div class="verdict-panel ' + verdictClass(data.verdict_text) + '"><div class="mock-verdict ' + verdictClass(data.verdict_text) + '"><b>' + esc(lines[0]) + '</b><small>' +
       (s.checks ? esc(s.checks_clear + ' of 3 checks clear, each cited') : '') + '</small></div>' +
       (lines.length > 1 ? '<p class="mock-explain">' + esc(lines.slice(1).join(' ').trim()) + '</p>' : '') +
-      nextStepsHtml(s, data.verdict_text, 'physician') +
+      nextStepsHtml(s, data.verdict_text, 'physician') + '</div>' +
       '<div class="actions" style="margin-top:1rem"><button class="btn-ghost" type="button" id="reportBtn">Download your verified profile (PDF)</button></div>' +
       (data.created_at ? '<p class="note" style="margin:0.8rem 0 0">Checked ' + esc(new Date(data.created_at).toLocaleString()) + '</p>' : '') +
       '</div>';
