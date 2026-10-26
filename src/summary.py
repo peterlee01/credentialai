@@ -96,7 +96,43 @@ def next_steps(state: str, profession: str, identity, sanctions, license_) -> di
         facility.append(_step("Download the PDF report and keep it in the physician's credentialing file. "
                               "Your credentialing team makes the final decision."))
         physician.append(_step("Once it's resolved, run the check again to update your verified profile."))
+    elif identity is not None and count == 1 and sanctions is not None and status == "active":
+        facility, physician = _go_steps(state, record.get("expiration_date"))
     return {"facility": facility, "physician": physician}
+
+
+# The rest of a full credentialing file (NCQA / Joint Commission), which Credentialai doesn't check yet.
+STILL_NEEDED = ["Education and training (medical school, residency, fellowship)", "Board certification",
+                "DEA registration, if they'll prescribe controlled substances",
+                "National Practitioner Data Bank (NPDB) query", "Malpractice insurance and claims history",
+                "Work history and references", "Signed application and attestation"]
+
+
+def _go_steps(state: str, expires: str):
+    """Next steps after a GO: what Credentialai covered, what the file still needs, and when to recheck."""
+    recheck = (f"Recheck before the license expires on {_long_date(expires)}, and monthly for sanctions."
+               if expires else "Recheck monthly: licenses lapse and sanctions can appear at any time.")
+    covered = [{"text": t, "done": True} for t in
+               ("Identity confirmed in the NPI Registry", "Not on the federal exclusion list",
+                f"{state} license active")]
+    facility = [
+        _step("Download the PDF report and add it to the physician's credentialing file."),
+        {**_step("Complete the rest of the credentialing file:"),
+         "items": covered + [{"text": t, "done": False} for t in STILL_NEEDED]},
+        _step("Send the complete file to your credentialing committee, then grant privileges and start payer "
+              "enrollment."),
+        _step(recheck),
+    ]
+    physician = [
+        _step("Download your verified profile and share it with facilities you apply to."),
+        _step('Turn on "Let employers find me" so facilities searching for your profession can find you.'),
+        _step("Set your job preferences to get better facility and job matches."),
+        _step("Have your board certification, DEA registration, malpractice coverage and work history ready. "
+              "Facilities will ask for them."),
+        _step(f"Run the check again before your license expires on {_long_date(expires)}." if expires
+              else "Run the check again every few months to keep your profile current."),
+    ]
+    return facility, physician
 
 
 def build_summary(first_name: str, last_name: str, state: str, profession: str, tool_calls: list) -> dict:
