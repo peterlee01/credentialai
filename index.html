@@ -120,6 +120,7 @@
   .hs-unit { font-size: 1.1rem; color: var(--muted-2); font-weight: 600; }
   .hs-label { font-size: 0.68rem; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-top: 0.15rem; }
   .hs-div { width: 1px; height: 2.4rem; background: var(--border-strong-2); }
+  @media (max-width: 480px) { .hero-stats { gap: 1rem; } .hs-num { font-size: 1.5rem; } }
 
   /* ---------- Verification panel ---------- */
   .panel-wrap { position: relative; }
@@ -434,9 +435,9 @@
         </a>
       </div>
       <div class="hero-stats">
-        <div><div class="hs-num">24<span class="hs-unit">h</span></div><div class="hs-label">Avg Turnaround</div></div>
+        <div><div class="hs-num">Minutes</div><div class="hs-label">To Verify</div></div>
         <div class="hs-div"></div>
-        <div><div class="hs-num">99.8<span class="hs-unit">%</span></div><div class="hs-label">Accuracy Rate</div></div>
+        <div><div class="hs-num">98<span class="hs-unit">%</span></div><div class="hs-label">Accuracy Rate</div></div>
         <div class="hs-div"></div>
         <div><div class="hs-num">10<span class="hs-unit">x</span></div><div class="hs-label">Faster</div></div>
       </div>
