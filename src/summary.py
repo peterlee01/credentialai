@@ -101,24 +101,14 @@ def next_steps(state: str, profession: str, identity, sanctions, license_) -> di
     return {"facility": facility, "physician": physician}
 
 
-# The rest of a full credentialing file (NCQA / Joint Commission), which Credentialai doesn't check yet.
-STILL_NEEDED = ["Education and training (medical school, residency, fellowship)", "Board certification",
-                "DEA registration, if they'll prescribe controlled substances",
-                "National Practitioner Data Bank (NPDB) query", "Malpractice insurance and claims history",
-                "Work history and references", "Signed application and attestation"]
-
-
 def _go_steps(state: str, expires: str):
-    """Next steps after a GO: what Credentialai covered, what the file still needs, and when to recheck."""
+    """Next steps after a GO: file the report, finish the credentialing file, and when to recheck."""
     recheck = (f"Recheck before the license expires on {_long_date(expires)}, and monthly for sanctions."
                if expires else "Recheck monthly: licenses lapse and sanctions can appear at any time.")
-    covered = [{"text": t, "done": True} for t in
-               ("Identity confirmed in the NPI Registry", "Not on the federal exclusion list",
-                f"{state} license active")]
     facility = [
         _step("Download the PDF report and add it to the physician's credentialing file."),
-        {**_step("Complete the rest of the credentialing file:"),
-         "items": covered + [{"text": t, "done": False} for t in STILL_NEEDED]},
+        _step("Complete the rest of the credentialing file outside Credentialai, such as board certification, "
+              "DEA registration and the NPDB query."),
         _step("Send the complete file to your credentialing committee, then grant privileges and start payer "
               "enrollment."),
         _step(recheck),

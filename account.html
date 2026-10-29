@@ -118,12 +118,6 @@
   .mock .verdict-panel .next-steps.nogo { border-top-color: #fb2c3655; }
   .mock .verdict-panel .next-steps.go { border-top-color: #00d4aa55; }
   .next-steps.go b { color: var(--accent); }
-  .next-steps .checklist { list-style: none; margin: 0.45rem 0 0; padding: 0; display: grid; gap: 0.3rem; font-size: 0.9rem; }
-  .next-steps .checklist li { margin: 0; padding-left: 1.5rem; position: relative; color: var(--muted); }
-  .next-steps .checklist li::before { content: "\25CB"; position: absolute; left: 0.1rem; color: var(--muted); }
-  .next-steps .checklist li.done { color: var(--text); }
-  .next-steps .checklist li.done::before { content: "\2713"; color: var(--accent); font-weight: 700; }
-  .next-steps .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .result-heading { margin: 0 0 0.9rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--heading); }
   .match-hiring { margin: 0.6rem 0 0.25rem; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
   .match-openings { list-style: disc; margin: 0; padding-left: 1.2rem; }
@@ -310,10 +304,7 @@
     if (!steps.length) return '';
     return '<div class="next-steps ' + esc(cls) + '"><b>What to do next</b><ol>' + steps.map(function (st) {
       return '<li>' + esc(st.text) + (st.link ? ' <a href="' + esc(st.link.url) + '" target="_blank" rel="noopener">' +
-        esc(st.link.label) + ' ↗</a>' : '') +
-        (st.items ? '<ul class="checklist">' + st.items.map(function (it) {
-          return '<li class="' + (it.done ? 'done' : '') + '">' + esc(it.text) + (it.done ? ' <span class="sr-only">(done)</span>' : '') + '</li>';
-        }).join('') + '</ul>' : '') + '</li>';
+        esc(st.link.label) + ' ↗</a>' : '') + '</li>';
     }).join('') + '</ol></div>';
   }
   function renderCred(data) {
