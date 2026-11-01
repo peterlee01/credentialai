@@ -1,5 +1,6 @@
 -- Credentialai physician accounts (Phase 1).
--- Run once in the Supabase dashboard: SQL Editor -> New query -> paste -> Run.
+-- Run in the Supabase dashboard: SQL Editor -> New query -> paste -> Run.
+-- Safe to run again; re-run it after updates to add new columns.
 
 create table if not exists public.profiles (
   id            uuid primary key references auth.users (id) on delete cascade,
@@ -11,13 +12,22 @@ create table if not exists public.profiles (
   npi           text not null,
   specialty     text,
   practice_city text,
-  -- The physician confirmed this NPI is theirs. Self-attested in Phase 1: no
-  -- profile is shown to employers until identity verification exists.
+  -- The physician confirmed this NPI is theirs and entered a license number that
+  -- matches the registry (where it lists one). See identity_status below.
   attested_at   timestamptz not null default now(),
   prefs         jsonb not null default '{}'::jsonb,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Identity: every claim starts self-attested. Set identity_status = 'confirmed' in
+-- Table Editor -> profiles once you've confirmed the person (for example by calling
+-- the practice); only confirmed physicians can be found by employers.
+alter table public.profiles add column if not exists license_number text;
+alter table public.profiles add column if not exists identity_status text not null default 'self_attested';
+alter table public.profiles drop constraint if exists profiles_identity_status_check;
+alter table public.profiles add constraint profiles_identity_status_check
+  check (identity_status in ('self_attested', 'confirmed'));
 
 -- One NPI can only be claimed by one account.
 create unique index if not exists profiles_npi_key on public.profiles (npi);

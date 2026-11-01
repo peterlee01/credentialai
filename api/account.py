@@ -13,6 +13,7 @@ or writes the signed-in physician's own rows.
 import base64
 import json
 import os
+import re
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -22,8 +23,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from http.server import BaseHTTPRequestHandler  # noqa: E402
 
+import requests  # noqa: E402
+
 from src import supa  # noqa: E402
 from src.coordinator import run_verification  # noqa: E402
+from src.notify import notify_owner  # noqa: E402
 from src.prefs import clean as clean_prefs  # noqa: E402
 from src.report import build_report_pdf  # noqa: E402
 from src.summary import build_summary  # noqa: E402
@@ -32,6 +36,16 @@ from src.tools_npi import get_npi_identity  # noqa: E402
 
 ALLOWED_PROFESSIONS = {"physician", "psychologist", "counselor", "social worker"}
 RUNS_PER_DAY = 3
+
+
+def _license_matches(entered: str, on_file: str) -> bool:
+    """Whether a typed license number is the registry's, ignoring punctuation, case, a board prefix
+    ("DR.0012345" vs "12345") and leading zeros."""
+    a, b = re.sub(r"[^A-Z0-9]", "", entered.upper()), re.sub(r"[^A-Z0-9]", "", on_file.upper())
+    if not a or not b:
+        return False
+    digits_a, digits_b = re.sub(r"\D", "", a).lstrip("0"), re.sub(r"\D", "", b).lstrip("0")
+    return a == b or (digits_a != "" and digits_a == digits_b)
 
 
 def _npi_records(first_name, last_name, state, profession, npi=""):
@@ -145,13 +159,19 @@ class handler(BaseHTTPRequestHandler):
         if npis:
             rows = supa.select("profiles", {"npi": f"in.({','.join(npis)})", "select": "npi"})
             claimed = {r["npi"] for r in rows}
-        self._send(200, {"records": [{**r, "claimed": r.get("npi") in claimed} for r in records]})
+        # The license number stays on the server: the claim asks the physician to type it.
+        self._send(200, {"records": [{**{k: v for k, v in r.items() if k != "license"},
+                                      "claimed": r.get("npi") in claimed} for r in records]})
 
     def _claim(self, user, body):
         fields = self._fields(body)
         npi = "".join(ch for ch in str(body.get("npi") or "") if ch.isdigit())
+        license_number = " ".join(str(body.get("license_number") or "").split())[:40]
         if not fields or len(npi) != 10:
             self._send(400, {"error": "Choose your NPI record."})
+            return
+        if not license_number:
+            self._send(400, {"error": "Enter your state license number."})
             return
         if body.get("attest") is not True:
             self._send(400, {"error": "Please confirm this record is you."})
@@ -163,26 +183,64 @@ class handler(BaseHTTPRequestHandler):
         if not record:
             self._send(400, {"error": "That NPI doesn't match your name and profession in the registry."})
             return
+        # Where the registry lists a license number, the one typed must match it. Records without one
+        # are accepted on the attestation alone; they stay self-attested until the owner confirms them.
+        on_file = record.get("license") or ""
+        if on_file and not _license_matches(license_number, on_file):
+            self._send(400, {"error": "That license number doesn't match this NPI record. Check it, or choose "
+                                      "a different record."})
+            return
         taken = supa.select("profiles", {"npi": f"eq.{npi}", "id": f"neq.{user['id']}", "select": "id"})
         if taken:
-            self._send(409, {"error": "This NPI is already linked to another account. Contact us if it's yours."})
+            notify_owner(f"Disputed NPI claim: {first} {last} ({npi})",
+                         f"{user.get('email')} tried to claim NPI {npi} ({first} {last}, {profession}, {state}), "
+                         "which is already linked to another account. If they contact you, check who the NPI "
+                         "belongs to before moving it.")
+            self._send(409, {"error": "This NPI is already linked to another account. If it's yours, email "
+                                      "info@credentialai.co and we'll sort it out."})
             return
-        profile = supa.upsert("profiles", {
+        existing = self._profile(user["id"])
+        # A confirmed identity only carries over when the same NPI is claimed again.
+        same_npi = bool(existing) and existing.get("npi") == npi
+        status = "confirmed" if same_npi and existing.get("identity_status") == "confirmed" else "self_attested"
+        now = datetime.now(timezone.utc).isoformat()
+        row = {
             "id": user["id"], "email": user.get("email"), "first_name": first, "last_name": last,
             "state": state, "profession": profession, "npi": npi,
             "specialty": record.get("primary_taxonomy_desc"),
             "practice_city": (record.get("practice_city") or "").title() or None,
-            "attested_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        })
+            "attested_at": now, "updated_at": now,
+        }
+        try:
+            profile = supa.upsert("profiles", {**row, "license_number": license_number, "identity_status": status})
+        except requests.HTTPError as exc:
+            # Until supabase/schema.sql's identity columns are added, save the claim without them.
+            if "license_number" not in (exc.response.text if exc.response is not None else ""):
+                raise
+            print("[account] profiles has no identity columns yet; run supabase/schema.sql")
+            profile = supa.upsert("profiles", row)
+        if not same_npi:
+            notify_owner(f"New NPI claim: {first} {last} ({npi})",
+                         f"{user.get('email')} claimed NPI {npi}: {first} {last}, "
+                         f"{record.get('primary_taxonomy_desc') or profession}, "
+                         f"{(record.get('practice_city') or '').title()}, {state}.\n"
+                         f"License number entered: {license_number} "
+                         f"({'matches the registry' if on_file else 'the registry lists none to compare'}).\n\n"
+                         "It's self-attested, so they can't be found by employers yet. To confirm the identity "
+                         "(for example by calling the practice), set identity_status = confirmed in Supabase: "
+                         "Table Editor -> profiles.")
         self._send(200, {"profile": profile, "runs_left": self._runs_left(user["id"])})
 
     def _prefs(self, user, body):
-        if not self._profile(user["id"]):
+        current = self._profile(user["id"])
+        if not current:
             self._send(400, {"error": "Claim your NPI first."})
             return
+        prefs = clean_prefs(body.get("prefs"))
+        if current.get("identity_status") != "confirmed":
+            prefs.pop("discoverable", None)  # employers can only find physicians whose identity is confirmed
         profile = supa.update("profiles", {"id": user["id"]}, {
-            "prefs": clean_prefs(body.get("prefs")), "updated_at": datetime.now(timezone.utc).isoformat()})
+            "prefs": prefs, "updated_at": datetime.now(timezone.utc).isoformat()})
         self._send(200, {"profile": profile})
 
     def _report(self, user):

@@ -68,8 +68,10 @@ def get_npi_identity(first_name: str, last_name: str, state: str, profession: st
             "primary_taxonomy_desc": primary_taxonomy.get("desc"),
             "primary_taxonomy_state": primary_taxonomy.get("state"),
             "license": primary_taxonomy.get("license"),
+            "practice_street": practice.get("address_1"),
             "practice_city": practice.get("city"),
             "practice_zip": (practice.get("postal_code") or "")[:5],
+            "enumerated_year": (basic.get("enumeration_date") or "")[:4],
         })
 
     return json.dumps({

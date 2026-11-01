@@ -27,30 +27,16 @@ import requests  # noqa: E402
 
 from src import supa  # noqa: E402
 from src.check_and_match import check_and_match, report_for, validate  # noqa: E402
+from src.notify import notify_owner  # noqa: E402
 from src.tools_facilities import STATE_CODES  # noqa: E402
 
 FREE_RUNS = 3
 HISTORY = 25
 FACILITY_TYPES = ("Hospital", "Health system", "Group practice", "Clinic", "Staffing agency", "Health plan", "Other")
-OWNER_EMAIL = "info@credentialai.co"
 
 
 def _clip(value, n=120):
     return " ".join(str(value or "").split())[:n]
-
-
-def _notify_owner(subject: str, text: str):
-    """Email the owner through Resend when RESEND_API_KEY is set; otherwise the row in
-    Supabase is the record."""
-    key = os.environ.get("RESEND_API_KEY")
-    if not key:
-        return
-    try:
-        requests.post("https://api.resend.com/emails", timeout=10, headers={"Authorization": f"Bearer {key}"},
-                      json={"from": "Credentialai <noreply@credentialai.co>", "to": [OWNER_EMAIL],
-                            "subject": subject, "text": text})
-    except requests.RequestException as exc:
-        print(f"[facility] owner email failed ({exc!r})")
 
 
 class handler(BaseHTTPRequestHandler):
@@ -162,7 +148,7 @@ class handler(BaseHTTPRequestHandler):
         facility = supa.upsert("facilities", row)
         if not existing:
             print(f"[facility] new sign-up {user['id']}")
-            _notify_owner(f"New facility sign-up: {name}",
+            notify_owner(f"New facility sign-up: {name}",
                           f"{name} ({facility_type}, {row['city'] or '?'}, {row['state'] or '?'}) signed up for "
                           f"early access. Contact: {row['contact_name'] or '?'} <{user['email']}>.\n\n"
                           "Approve it in Supabase: Table Editor -> facilities -> approved = true.")
@@ -237,7 +223,7 @@ class handler(BaseHTTPRequestHandler):
             name, note = _clip(body.get("name")), _clip(body.get("note"), 500)
             supa.insert("intro_requests", {"facility_id": facility["id"], "run_id": run_id, "physician_npi": npi,
                                            "physician_name": name, "note": note})
-            _notify_owner(f"Intro request: {name or npi} for {facility['name']}",
+            notify_owner(f"Intro request: {name or npi} for {facility['name']}",
                           f"{facility['name']} ({facility.get('contact_name') or '?'} <{facility.get('email')}>) asked "
                           f"for an intro to {name or '?'} (NPI {npi}).\n\nNote: {note or '-'}")
         self._send(200, {"requested": True})

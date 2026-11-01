@@ -142,10 +142,12 @@ def registry_candidates(city: str, state: str, profession: str, specialty: str =
 # ---------- opt-in physicians ----------
 
 def opt_in_candidates(state: str, profession: str) -> list:
-    """Credentialai physicians in the state who let employers find them and are verified (GO)."""
+    """Credentialai physicians in the state who let employers find them, whose identity the owner has confirmed
+    (identity_status), and whose latest verification is GO."""
     try:
         profiles = supa.select("profiles", {"state": f"eq.{state}", "profession": f"eq.{profession}",
-                                            "prefs->>discoverable": "eq.true", "select": "*"})
+                                            "prefs->>discoverable": "eq.true", "identity_status": "eq.confirmed",
+                                            "select": "*"})
     except supa.NotConfigured:
         return []
     except Exception as exc:
