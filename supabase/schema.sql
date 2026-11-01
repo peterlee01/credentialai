@@ -20,11 +20,16 @@ create table if not exists public.profiles (
   updated_at    timestamptz not null default now()
 );
 
--- Identity: every claim starts self-attested. Set identity_status = 'confirmed' in
--- Table Editor -> profiles once you've confirmed the person (for example by calling
--- the practice); only confirmed physicians can be found by employers.
+-- Identity: every claim starts self-attested. It becomes 'confirmed' when the physician
+-- enters the code sent to their practice phone, or when you set identity_status =
+-- 'confirmed' in Table Editor -> profiles; only confirmed physicians can be found by employers.
 alter table public.profiles add column if not exists license_number text;
 alter table public.profiles add column if not exists identity_status text not null default 'self_attested';
+-- How and when it was confirmed: 'practice_phone' when the physician enters the code
+-- sent to the practice phone on their NPI record (api/account.py), or left empty when
+-- you confirm by hand.
+alter table public.profiles add column if not exists identity_method text;
+alter table public.profiles add column if not exists identity_confirmed_at timestamptz;
 alter table public.profiles drop constraint if exists profiles_identity_status_check;
 alter table public.profiles add constraint profiles_identity_status_check
   check (identity_status in ('self_attested', 'confirmed'));

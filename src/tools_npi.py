@@ -71,6 +71,7 @@ def get_npi_identity(first_name: str, last_name: str, state: str, profession: st
             "practice_street": practice.get("address_1"),
             "practice_city": practice.get("city"),
             "practice_zip": (practice.get("postal_code") or "")[:5],
+            "practice_phone": practice.get("telephone_number"),
             "enumerated_year": (basic.get("enumeration_date") or "")[:4],
         })
 

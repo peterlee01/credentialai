@@ -68,6 +68,9 @@
   .check input { margin-top: 0.35rem; accent-color: var(--accent); }
   .check input:disabled + span { opacity: 0.6; }
   .id-status { display: inline-block; margin-top: 0.5rem; }
+  .id-confirm { margin-top: 1.2rem; padding-top: 1.1rem; border-top: 1px solid var(--border); }
+  .id-confirm h3 { font-family: var(--display); font-size: 1.05rem; color: var(--heading); margin: 0 0 0.4rem; }
+  .id-confirm .field { max-width: 16rem; margin: 0.8rem 0 0; }
   .profile-line b { color: var(--heading); }
   .profile-panel { padding: 1.2rem 1.6rem; }
   .profile-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -213,6 +216,22 @@
         <p class="profile-line" id="profileLine"></p>
         <span class="badge" id="verifiedBadge"></span>
       </div>
+      <div class="id-confirm hidden" id="idConfirm">
+        <h3>Confirm your identity</h3>
+        <p class="note">We'll send a 6-digit code to the practice phone on your NPI record. If it reaches your front desk, ask them for it. Once you're confirmed, facilities can find you.</p>
+        <div class="actions" id="idStart"><button class="btn-ghost" type="button" id="idLookup">Confirm with your practice phone</button></div>
+        <div class="hidden" id="idSend">
+          <p class="note">Practice phone on your NPI record: <b id="idPhone"></b></p>
+          <div class="actions"><button class="btn-ghost id-channel" type="button" data-channel="call">Call with a code</button>
+            <button class="btn-ghost id-channel" type="button" data-channel="sms">Text a code</button></div>
+        </div>
+        <form class="hidden" id="idCodeForm">
+          <div class="field"><label for="idCode">6-digit code</label><input id="idCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" /></div>
+          <div class="actions"><button class="btn-primary" type="submit" id="idCheckBtn">Confirm</button></div>
+        </form>
+        <p class="ok-msg hidden" id="idSent"></p>
+        <p class="error hidden" id="idError"></p>
+      </div>
     </div>
 
     <div class="panel">
@@ -234,7 +253,7 @@
             <input id="alsoCity1" type="text" placeholder="City, ST" maxlength="45" autocomplete="off" />
             <input id="alsoCity2" type="text" placeholder="City, ST" maxlength="45" autocomplete="off" style="margin-top:0.5rem" /></div>
         </div>
-        <label class="check" style="margin-top:1rem"><input type="checkbox" id="discoverable" /> <span>Let employers find me. Facilities searching for your profession in your state see your name, specialty, city and verified status, marked "Open to offers". Your email and contact details are never shown.<small class="note hidden" id="discoverNote" style="display:block;margin-top:0.3rem">Available once we've confirmed your identity with your practice.</small></span></label>
+        <label class="check" style="margin-top:1rem"><input type="checkbox" id="discoverable" /> <span>Let employers find me. Facilities searching for your profession in your state see your name, specialty, city and verified status, marked "Open to offers". Your email and contact details are never shown.<small class="note hidden" id="discoverNote" style="display:block;margin-top:0.3rem">Available once your identity is confirmed.</small></span></label>
         <div class="actions">
           <button class="btn-primary" type="submit" id="updateBtn">Save and update my jobs</button>
           <span class="note" id="runsLeft"></span>
@@ -412,6 +431,7 @@
       esc([p.specialty || p.profession, p.practice_city, p.state].filter(Boolean).join(' · ')) + '<br>' +
       (confirmed ? '<span class="chip ok id-status">Identity confirmed</span>'
                  : '<span class="chip warn id-status" title="We confirm each physician with their practice before employers can find them.">Identity self-attested</span>');
+    $('idConfirm').classList.toggle('hidden', confirmed || !d.phone_verify);
     var prefs = p.prefs || {};
     $('setting').value = prefs.setting || '';
     $('minPay').value = prefs.min_pay || '';
@@ -496,6 +516,41 @@
       $('claimForm').classList.remove('hidden');
     });
   });
+  // ---------- identity: code to the practice phone ----------
+  $('idLookup').addEventListener('click', function () {
+    msg('idError'); $('idLookup').disabled = true;
+    api('POST', { action: 'phone_lookup' }).then(function (r) {
+      $('idLookup').disabled = false;
+      if (r.status !== 200) { msg('idError', r.data.error); return; }
+      $('idPhone').textContent = r.data.phone;
+      $('idStart').classList.add('hidden'); $('idSend').classList.remove('hidden');
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.id-channel'), function (b) {
+    b.addEventListener('click', function () {
+      var buttons = document.querySelectorAll('.id-channel');
+      msg('idError'); msg('idSent');
+      Array.prototype.forEach.call(buttons, function (x) { x.disabled = true; });
+      api('POST', { action: 'phone_start', channel: b.getAttribute('data-channel') }).then(function (r) {
+        Array.prototype.forEach.call(buttons, function (x) { x.disabled = false; });
+        if (r.status !== 200) { msg('idError', r.data.error); return; }
+        msg('idSent', (b.getAttribute('data-channel') === 'call' ? 'Calling ' : 'Texting ') + r.data.phone + ' with your code. It expires in 10 minutes.');
+        $('idCodeForm').classList.remove('hidden'); $('idCode').focus();
+      });
+    });
+  });
+  $('idCodeForm').addEventListener('submit', function (e) {
+    e.preventDefault(); msg('idError');
+    var code = $('idCode').value.replace(/\D/g, '');
+    if (code.length < 4) { msg('idError', 'Enter the code from the call or text.'); return; }
+    $('idCheckBtn').disabled = true;
+    api('POST', { action: 'phone_check', code: code }).then(function (r) {
+      $('idCheckBtn').disabled = false;
+      if (r.status !== 200) { msg('idError', r.data.error); return; }
+      refresh();
+    });
+  });
+
   $('claimForm').addEventListener('submit', function (e) {
     e.preventDefault(); msg('claimError');
     var picked = document.querySelector('input[name="npi"]:checked');
