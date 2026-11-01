@@ -3,7 +3,8 @@
 GET  /api/account                      -> sign-in config, and (with a Supabase access token
                                           in "Authorization: Bearer ...") the profile, latest
                                           verification and runs left today
-POST /api/account {"action": ...}      -> npi_search | claim | prefs | verify | report | delete
+POST /api/account {"action": ...}      -> npi_search | claim | prefs | verify | report | delete |
+                                          phone_lookup | phone_start | phone_check
 
 Sign-in itself happens in the browser with Supabase Auth (email links); this
 function checks the token with Supabase on every request and only ever reads
@@ -15,6 +16,7 @@ import json
 import os
 import re
 import sys
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -25,7 +27,7 @@ from http.server import BaseHTTPRequestHandler  # noqa: E402
 
 import requests  # noqa: E402
 
-from src import supa  # noqa: E402
+from src import phone_verify, supa  # noqa: E402
 from src.coordinator import run_verification  # noqa: E402
 from src.notify import notify_owner  # noqa: E402
 from src.prefs import clean as clean_prefs  # noqa: E402
@@ -36,6 +38,8 @@ from src.tools_npi import get_npi_identity  # noqa: E402
 
 ALLOWED_PROFESSIONS = {"physician", "psychologist", "counselor", "social worker"}
 RUNS_PER_DAY = 3
+CODES_PER_HOUR = 3  # practice-phone codes per account; Twilio Verify also limits each number
+_codes_sent = {}  # user id -> send times, per warm instance
 
 
 def _license_matches(entered: str, on_file: str) -> bool:
@@ -100,7 +104,8 @@ class handler(BaseHTTPRequestHandler):
                                                "limit": "1", "select": "*"})
         self._send(200, {"configured": True, **config, "user": user, "profile": profile,
                          "latest": latest[0] if latest else None,
-                         "runs_left": self._runs_left(user["id"]) if profile else None})
+                         "runs_left": self._runs_left(user["id"]) if profile else None,
+                         "phone_verify": phone_verify.available()})
 
     # ---------- POST ----------
     def do_POST(self):
@@ -130,6 +135,8 @@ class handler(BaseHTTPRequestHandler):
                 self._verify(user)
             elif action == "report":
                 self._report(user)
+            elif action in ("phone_lookup", "phone_start", "phone_check"):
+                self._phone(user, action, body)
             elif action == "delete":
                 supa.delete_user(user["id"])
                 self._send(200, {"deleted": True})
@@ -159,8 +166,9 @@ class handler(BaseHTTPRequestHandler):
         if npis:
             rows = supa.select("profiles", {"npi": f"in.({','.join(npis)})", "select": "npi"})
             claimed = {r["npi"] for r in rows}
-        # The license number stays on the server: the claim asks the physician to type it.
-        self._send(200, {"records": [{**{k: v for k, v in r.items() if k != "license"},
+        # The license number stays on the server (the claim asks the physician to type it), and so
+        # does the practice phone (identity codes go to it).
+        self._send(200, {"records": [{**{k: v for k, v in r.items() if k not in ("license", "practice_phone")},
                                       "claimed": r.get("npi") in claimed} for r in records]})
 
     def _claim(self, user, body):
@@ -242,6 +250,65 @@ class handler(BaseHTTPRequestHandler):
         profile = supa.update("profiles", {"id": user["id"]}, {
             "prefs": prefs, "updated_at": datetime.now(timezone.utc).isoformat()})
         self._send(200, {"profile": profile})
+
+    # ---------- identity: a code to the practice phone on the NPI record ----------
+    def _practice_phone(self, profile):
+        """The practice phone on the claimed NPI's registry record, as +1XXXXXXXXXX, or None."""
+        records = _npi_records(profile["first_name"], profile["last_name"], profile["state"], profile["profession"],
+                               npi=profile["npi"])
+        record = next((r for r in records if r.get("npi") == profile["npi"]), None)
+        return phone_verify.to_e164((record or {}).get("practice_phone"))
+
+    def _phone(self, user, action, body):
+        profile = self._profile(user["id"])
+        if not profile:
+            self._send(400, {"error": "Claim your NPI first."})
+            return
+        if profile.get("identity_status") == "confirmed":
+            self._send(200, {"confirmed": True, "profile": profile})
+            return
+        if not phone_verify.available():
+            self._send(503, {"error": "Phone confirmation isn't available yet."})
+            return
+        phone = self._practice_phone(profile)
+        if not phone:
+            self._send(400, {"error": "Your NPI record has no US practice phone we can use. Email "
+                                      "info@credentialai.co and we'll confirm you another way."})
+            return
+        try:
+            if action == "phone_lookup":
+                self._send(200, {"phone": phone_verify.mask(phone)})
+            elif action == "phone_start":
+                now = time.time()
+                recent = [t for t in _codes_sent.get(user["id"], []) if now - t < 3600]
+                if len(recent) >= CODES_PER_HOUR:
+                    self._send(429, {"error": "You've sent 3 codes this hour. Try again later."})
+                    return
+                phone_verify.send_code(phone, str(body.get("channel") or ""))
+                _codes_sent[user["id"]] = recent + [now]
+                self._send(200, {"sent": True, "phone": phone_verify.mask(phone)})
+            elif not phone_verify.code_ok(phone, str(body.get("code") or "")):
+                self._send(400, {"error": "That code isn't right. Check it, or send a new one."})
+            else:
+                self._confirm(user, profile)
+        except phone_verify.PhoneError as exc:
+            self._send(400, {"error": str(exc)})
+
+    def _confirm(self, user, profile):
+        now = datetime.now(timezone.utc).isoformat()
+        try:
+            updated = supa.update("profiles", {"id": user["id"]}, {
+                "identity_status": "confirmed", "identity_method": "practice_phone", "identity_confirmed_at": now,
+                "updated_at": now})
+        except requests.HTTPError as exc:
+            # Until supabase/schema.sql's identity_method columns are added, record the status alone.
+            if "identity_method" not in (exc.response.text if exc.response is not None else ""):
+                raise
+            updated = supa.update("profiles", {"id": user["id"]}, {"identity_status": "confirmed", "updated_at": now})
+        notify_owner(f"Identity confirmed: {profile['first_name']} {profile['last_name']} ({profile['npi']})",
+                     f"{user.get('email')} confirmed NPI {profile['npi']} with the code sent to the practice phone "
+                     "on the registry record. They can now let employers find them.")
+        self._send(200, {"confirmed": True, "profile": updated})
 
     def _report(self, user):
         """PDF of the latest saved verification, rebuilt on the server from the stored result,
