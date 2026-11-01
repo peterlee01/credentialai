@@ -66,6 +66,8 @@
   .record.taken { opacity: 0.5; cursor: not-allowed; }
   .check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 1rem 0; font-size: 0.95rem; }
   .check input { margin-top: 0.35rem; accent-color: var(--accent); }
+  .check input:disabled + span { opacity: 0.6; }
+  .id-status { display: inline-block; margin-top: 0.5rem; }
   .profile-line b { color: var(--heading); }
   .profile-panel { padding: 1.2rem 1.6rem; }
   .profile-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -197,6 +199,9 @@
     <form id="claimForm" class="hidden">
       <h2 style="margin-top:1.5rem">Choose your record</h2>
       <div id="records"></div>
+      <div class="field" style="margin-top:1rem"><label for="licenseNo">State license number</label>
+        <input id="licenseNo" autocomplete="off" maxlength="40" placeholder="As shown on your license, e.g. DR.0012345" />
+        <span class="note">We check it against your NPI record before your claim goes through.</span></div>
       <label class="check"><input type="checkbox" id="attest" /> <span>I confirm this NPI record is me. Claiming someone else's record is not allowed.</span></label>
       <div class="actions"><button class="btn-primary" type="submit" id="claimBtn">Claim this NPI</button></div>
       <p class="error hidden" id="claimError"></p>
@@ -231,7 +236,7 @@
             <input id="alsoCity1" type="text" placeholder="City, ST" maxlength="45" autocomplete="off" />
             <input id="alsoCity2" type="text" placeholder="City, ST" maxlength="45" autocomplete="off" style="margin-top:0.5rem" /></div>
         </div>
-        <label class="check" style="margin-top:1rem"><input type="checkbox" id="discoverable" /> <span>Let employers find me. Facilities searching for your profession in your state see your name, specialty, city and verified status, marked "Open to offers". Your email and contact details are never shown.</span></label>
+        <label class="check" style="margin-top:1rem"><input type="checkbox" id="discoverable" /> <span>Let employers find me. Facilities searching for your profession in your state see your name, specialty, city and verified status, marked "Open to offers". Your email and contact details are never shown.<small class="note hidden" id="discoverNote" style="display:block;margin-top:0.3rem">Available once we've confirmed your identity with your practice.</small></span></label>
         <div class="actions">
           <button class="btn-primary" type="submit" id="updateBtn">Save and update my jobs</button>
           <span class="note" id="runsLeft"></span>
@@ -410,14 +415,19 @@
   function renderDash(d) {
     var p = d.profile;
     currentProfile = p;
+    var confirmed = p.identity_status === 'confirmed';
     $('profileLine').innerHTML = '<b>' + esc(p.first_name + ' ' + p.last_name) + '</b> · NPI ' + esc(p.npi) + '<br>' +
-      esc([p.specialty || p.profession, p.practice_city, p.state].filter(Boolean).join(' · '));
+      esc([p.specialty || p.profession, p.practice_city, p.state].filter(Boolean).join(' · ')) + '<br>' +
+      (confirmed ? '<span class="chip ok id-status">Identity confirmed</span>'
+                 : '<span class="chip warn id-status" title="We confirm each physician with their practice before employers can find them.">Identity self-attested</span>');
     var prefs = p.prefs || {};
     $('setting').value = prefs.setting || '';
     $('minPay').value = prefs.min_pay || '';
     $('employment').value = prefs.employment || '';
     $('contract').value = prefs.contract || '';
-    $('discoverable').checked = !!prefs.discoverable;
+    $('discoverable').checked = confirmed && !!prefs.discoverable;
+    $('discoverable').disabled = !confirmed;  // employers can only find confirmed physicians
+    $('discoverNote').classList.toggle('hidden', confirmed);
     $('area').value = prefs.area || '';
     $('areaState').textContent = 'Anywhere in ' + (p.state || 'my state');
     var also = prefs.also_cities || [];
@@ -483,11 +493,13 @@
       var recs = r.data.records || [];
       if (!recs.length) { msg('searchError', 'No ' + lastSearch.profession + ' record found for that name in ' + lastSearch.state + '. Check the spelling and state.'); $('claimForm').classList.add('hidden'); return; }
       $('records').innerHTML = recs.map(function (rec, i) {
-        var where = [rec.practice_city ? rec.practice_city.charAt(0) + rec.practice_city.slice(1).toLowerCase() : '', rec.primary_taxonomy_state].filter(Boolean).join(', ');
+        var title = function (v) { return String(v || '').toLowerCase().replace(/\b\w/g, function (c) { return c.toUpperCase(); }); };
+        var where = [title(rec.practice_street), title(rec.practice_city), rec.primary_taxonomy_state].filter(Boolean).join(', ');
         return '<label class="record' + (rec.claimed ? ' taken' : '') + '"><input type="radio" name="npi" value="' + esc(rec.npi) + '"' +
           (rec.claimed ? ' disabled' : (i === 0 ? ' checked' : '')) + ' />' +
           '<span><b>' + esc([rec.first_name, rec.last_name, rec.credential].filter(Boolean).join(' ')) + ' · NPI ' + esc(rec.npi) + '</b>' +
-          '<small>' + esc([rec.primary_taxonomy_desc, where].filter(Boolean).join(' · ')) + (rec.claimed ? ' · already claimed' : '') + '</small></span></label>';
+          '<small>' + esc([rec.primary_taxonomy_desc, where, rec.enumerated_year ? 'NPI issued ' + rec.enumerated_year : ''].filter(Boolean).join(' · ')) +
+          (rec.claimed ? ' · already claimed' : '') + '</small></span></label>';
       }).join('');
       $('claimForm').classList.remove('hidden');
     });
@@ -496,9 +508,11 @@
     e.preventDefault(); msg('claimError');
     var picked = document.querySelector('input[name="npi"]:checked');
     if (!picked) { msg('claimError', 'Choose your record.'); return; }
+    var licenseNo = $('licenseNo').value.trim();
+    if (!licenseNo) { msg('claimError', 'Enter your state license number.'); return; }
     if (!$('attest').checked) { msg('claimError', 'Please confirm this record is you.'); return; }
     $('claimBtn').disabled = true;
-    api('POST', Object.assign({ action: 'claim', npi: picked.value, attest: true }, lastSearch)).then(function (r) {
+    api('POST', Object.assign({ action: 'claim', npi: picked.value, license_number: licenseNo, attest: true }, lastSearch)).then(function (r) {
       $('claimBtn').disabled = false;
       if (r.status !== 200) { msg('claimError', r.data.error); return; }
       refresh();
