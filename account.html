@@ -80,8 +80,6 @@
   .mock { background: #0a0b0d; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 1.4rem; margin-top: 1rem; }
   .more-jobs { align-items: center; }
   .mock-row[hidden] { display: none; }
-  .google-jobs { color: var(--heading); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
-  .google-jobs:hover { color: var(--accent); }
   .mock.t-cred { border-color: var(--accent); } .mock.t-match { border-color: var(--match); }
   .mock-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.9rem; }
   .mock-person { display: flex; align-items: center; gap: 0.7rem; }
@@ -368,14 +366,8 @@
   // ---------- "Search more jobs" ----------
   var JOBS_SHOWN = 5;
   var currentProfile = null;
-  function googleJobsUrl() {
-    var p = currentProfile || {};
-    var place = [p.practice_city, p.state].filter(Boolean).join(', ');
-    return 'https://www.google.com/search?ibp=htg;jobs&q=' + encodeURIComponent((p.profession || 'physician') + ' jobs near ' + place);
-  }
   function moreJobsFooter() {
-    return '<div class="actions more-jobs"><button class="btn-ghost" type="button" id="moreJobs">Search more jobs</button>' +
-      '<a class="google-jobs" href="' + esc(googleJobsUrl()) + '" target="_blank" rel="noopener">See all on Google Jobs ↗</a></div>' +
+    return '<div class="actions more-jobs"><button class="btn-ghost" type="button" id="moreJobs">Search more jobs</button></div>' +
       '<p class="note hidden" id="moreJobsNote"></p>';
   }
   function searchMoreJobs() {
@@ -392,7 +384,7 @@
       $('prefsForm').requestSubmit ? $('prefsForm').requestSubmit() : $('updateBtn').click();
       return;
     }
-    msg('moreJobsNote', 'These are all the matches across your state. Add a city under "Also open to", or see every listing on Google Jobs.');
+    msg('moreJobsNote', 'These are all the matches across your state. Add a city under "Also open to" to see more.');
   }
   function setBadge(verdictText, when) {
     var v = verdictClass(verdictText), badge = $('verifiedBadge');
